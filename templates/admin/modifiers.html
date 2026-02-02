@@ -1,0 +1,764 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Модифікатори{% endblock %}
+
+{% block extra_css %}
+<style>
+.modifiers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modifiers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.modifier-card {
+    background: var(--color-bg-card);
+    border-radius: 16px;
+    padding: 25px;
+    border: 2px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.modifier-card:hover {
+    border-color: var(--color-primary);
+}
+
+.modifier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 15px;
+}
+
+.modifier-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.modifier-type {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.modifier-type.single {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.modifier-type.multiple {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.modifier-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.options-list {
+    margin: 15px 0;
+}
+
+.option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.option-item:last-child {
+    border-bottom: none;
+}
+
+.option-name {
+    color: var(--color-text-primary);
+}
+
+.option-price {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.option-price.free {
+    color: var(--color-text-muted);
+}
+
+.modifier-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--color-border);
+}
+
+.modifier-actions button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.btn-edit:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-delete {
+    background: #ffebee;
+    color: #f44336;
+}
+
+.btn-delete:hover {
+    background: #f44336;
+    color: white;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--color-bg-card);
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
+
+.options-section h4 {
+    margin-bottom: 15px;
+    color: var(--color-text-primary);
+}
+
+.option-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.option-input-row input {
+    padding: 10px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+}
+
+.option-input-row input[name="option-name"] {
+    flex: 2;
+}
+
+.option-input-row input[name="option-price"] {
+    flex: 1;
+    width: 100px;
+}
+
+.option-input-row .remove-option {
+    background: #ffebee;
+    color: #f44336;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.btn-add-option {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 15px;
+    background: var(--color-bg);
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.btn-add-option:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 80px;
+    height: 80px;
+    opacity: 0.3;
+    margin-bottom: 20px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Disabled modifier card */
+.modifier-card.disabled {
+    opacity: 0.6;
+    background: var(--color-bg);
+}
+
+.disabled-badge {
+    background: #ffebee !important;
+    color: #f44336 !important;
+}
+
+.display-badge {
+    background: #e3f2fd !important;
+    color: #1976d2 !important;
+}
+
+/* Option number in list */
+.option-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+/* Option number badge in form */
+.option-number-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Order buttons */
+.order-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.order-btn {
+    padding: 2px 8px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+.order-btn:hover:not(:disabled) {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+
+.order-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Copy button */
+.btn-copy {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: #1976d2;
+    color: white;
+}
+
+/* Search */
+.search-container {
+    flex: 1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="modifiersApp()" x-init="loadModifiers()">
+    <!-- Header -->
+    <div class="modifiers-header">
+        <div class="search-container">
+            <input type="text" class="form-input" x-model="searchQuery"
+                   placeholder="Пошук модифікаторів..."
+                   style="max-width: 300px;">
+        </div>
+        <button class="btn-add" @click="openModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Додати групу
+        </button>
+    </div>
+
+    <!-- Modifiers Grid -->
+    <div class="modifiers-grid" x-show="filteredModifiers.length > 0">
+        <template x-for="modifier in filteredModifiers" :key="modifier._id">
+            <div class="modifier-card" :class="{ 'disabled': modifier.is_enabled === false }">
+                <div class="modifier-header">
+                    <div>
+                        <div class="modifier-name" x-text="modifier.name"></div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                            <span class="modifier-type" :class="modifier.type" x-text="modifier.type === 'single' ? 'Один вибір' : 'Кілька варіантів'"></span>
+                            <span class="modifier-badge" x-show="modifier.required">Обов'язковий</span>
+                            <span class="modifier-badge disabled-badge" x-show="modifier.is_enabled === false">Вимкнено</span>
+                            <span class="modifier-badge display-badge" x-show="modifier.display_mode === 'column'">Колонка</span>
+                        </div>
+                    </div>
+                    <!-- Toggle Enable/Disable -->
+                    <label class="toggle-switch" title="Увімкнути/Вимкнути">
+                        <input type="checkbox" :checked="modifier.is_enabled !== false" @change="toggleModifier(modifier)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="options-list">
+                    <template x-for="(option, idx) in modifier.options" :key="option.name">
+                        <div class="option-item">
+                            <span class="option-number" x-text="idx + 1"></span>
+                            <span class="option-name" x-text="option.name"></span>
+                            <span class="option-price" :class="{ 'free': option.price_add === 0 }" x-text="option.price_add > 0 ? '+' + option.price_add + ' грн' : 'Безкоштовно'"></span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="modifier-actions">
+                    <button class="btn-copy" @click="copyModifier(modifier)" title="Копіювати">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg>
+                    </button>
+                    <button class="btn-edit" @click="editModifier(modifier)">Редагувати</button>
+                    <button class="btn-delete" @click="deleteModifier(modifier._id)">Видалити</button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" x-show="modifiers.length === 0">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,17V19H9V17H3M3,5V7H13V5H3M13,21V19H21V17H13V15H11V21H13M7,9V11H3V13H7V15H9V9H7M21,13V11H11V13H21M15,9H17V7H21V5H17V3H15V9Z"/></svg>
+        <h3>Немає модифікаторів</h3>
+        <p>Створіть групу модифікаторів (наприклад, "Розмір", "Молоко")</p>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" x-show="showModal" x-transition.opacity @click.self="showModal = false" style="display: none;">
+        <div class="modal-content" @click.stop>
+            <div class="modal-header">
+                <h2 x-text="editingModifier ? 'Редагувати групу' : 'Нова група модифікаторів'"></h2>
+                <button class="modal-close" @click="showModal = false">&times;</button>
+            </div>
+
+            <form @submit.prevent="saveModifier()">
+                <div class="form-group">
+                    <label>Назва групи</label>
+                    <input type="text" x-model="form.name" required placeholder="Наприклад: Розмір">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Тип вибору</label>
+                        <select x-model="form.type">
+                            <option value="single">Один варіант (radio)</option>
+                            <option value="multiple">Кілька варіантів (checkbox)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Режим відображення</label>
+                        <select x-model="form.display_mode">
+                            <option value="row">В рядок</option>
+                            <option value="column">В колонку</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="required" x-model="form.required">
+                        <label for="required" style="margin: 0;">Обов'язковий вибір</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show_for_otp" x-model="form.show_for_otp">
+                        <label for="show_for_otp" style="margin: 0;">Показувати для ОТП</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show_for_vtp" x-model="form.show_for_vtp">
+                        <label for="show_for_vtp" style="margin: 0;">Показувати для ВТП</label>
+                    </div>
+                </div>
+
+                <div class="options-section">
+                    <h4>Варіанти (перетягніть для зміни порядку)</h4>
+                    <template x-for="(option, index) in form.options" :key="index">
+                        <div class="option-input-row">
+                            <span class="option-number-badge" x-text="index + 1"></span>
+                            <input type="text" name="option-name" x-model="option.name" placeholder="Назва" required>
+                            <input type="number" name="option-price" x-model="option.price_add" placeholder="+ грн" step="0.01" min="0">
+                            <div class="order-buttons">
+                                <button type="button" class="order-btn" @click="moveOption(index, -1)" :disabled="index === 0" title="Вгору">↑</button>
+                                <button type="button" class="order-btn" @click="moveOption(index, 1)" :disabled="index === form.options.length - 1" title="Вниз">↓</button>
+                            </div>
+                            <button type="button" class="remove-option" @click="removeOption(index)" x-show="form.options.length > 1">&times;</button>
+                        </div>
+                    </template>
+                    <button type="button" class="btn-add-option" @click="addOption()">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                        Додати варіант
+                    </button>
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 20px;" x-text="editingModifier ? 'Зберегти' : 'Створити'"></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function modifiersApp() {
+    return {
+        modifiers: [],
+        showModal: false,
+        editingModifier: null,
+        searchQuery: '',
+        form: {
+            name: '',
+            type: 'single',
+            required: false,
+            display_mode: 'row',
+            show_for_otp: true,
+            show_for_vtp: true,
+            options: [{ name: '', price_add: 0 }]
+        },
+
+        // Filtered modifiers based on search
+        get filteredModifiers() {
+            if (!this.searchQuery) return this.modifiers;
+            const q = this.searchQuery.toLowerCase();
+            return this.modifiers.filter(m =>
+                m.name.toLowerCase().includes(q) ||
+                m.options.some(o => o.name.toLowerCase().includes(q))
+            );
+        },
+
+        async loadModifiers() {
+            try {
+                const response = await fetch('/api/modifiers');
+                this.modifiers = await response.json();
+            } catch (error) {
+                console.error('Error loading modifiers:', error);
+            }
+        },
+
+        openModal(modifier = null) {
+            if (modifier) {
+                this.editingModifier = modifier;
+                this.form = {
+                    name: modifier.name,
+                    type: modifier.type,
+                    required: modifier.required,
+                    display_mode: modifier.display_mode || 'row',
+                    show_for_otp: modifier.show_for_otp !== false,
+                    show_for_vtp: modifier.show_for_vtp !== false,
+                    options: modifier.options.map(o => ({ ...o }))
+                };
+            } else {
+                this.editingModifier = null;
+                this.form = {
+                    name: '',
+                    type: 'single',
+                    required: false,
+                    display_mode: 'row',
+                    show_for_otp: true,
+                    show_for_vtp: true,
+                    options: [{ name: '', price_add: 0 }]
+                };
+            }
+            this.showModal = true;
+        },
+
+        editModifier(modifier) {
+            this.openModal(modifier);
+        },
+
+        addOption() {
+            this.form.options.push({ name: '', price_add: 0 });
+        },
+
+        removeOption(index) {
+            this.form.options.splice(index, 1);
+        },
+
+        moveOption(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= this.form.options.length) return;
+
+            const options = this.form.options;
+            [options[index], options[newIndex]] = [options[newIndex], options[index]];
+        },
+
+        async toggleModifier(modifier) {
+            const newState = modifier.is_enabled === false;
+            try {
+                await fetch(`/api/modifiers/${modifier._id}/toggle`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_enabled: newState })
+                });
+                await this.loadModifiers();
+            } catch (error) {
+                console.error('Error toggling modifier:', error);
+            }
+        },
+
+        async copyModifier(modifier) {
+            if (!confirm(`Копіювати "${modifier.name}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/modifiers/${modifier._id}/copy`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    await this.loadModifiers();
+                } else {
+                    alert('Помилка копіювання');
+                }
+            } catch (error) {
+                console.error('Error copying modifier:', error);
+                alert('Помилка копіювання');
+            }
+        },
+
+        async saveModifier() {
+            // Filter empty options and parse prices
+            const validOptions = this.form.options
+                .filter(opt => opt.name.trim())
+                .map(opt => ({
+                    name: opt.name.trim(),
+                    price_add: parseFloat(opt.price_add) || 0
+                }));
+
+            if (validOptions.length === 0) {
+                alert('Додайте хоча б один варіант');
+                return;
+            }
+
+            const data = {
+                name: this.form.name,
+                type: this.form.type,
+                required: this.form.required,
+                display_mode: this.form.display_mode,
+                show_for_otp: this.form.show_for_otp,
+                show_for_vtp: this.form.show_for_vtp,
+                options: validOptions
+            };
+
+            try {
+                const url = this.editingModifier
+                    ? `/api/modifiers/${this.editingModifier._id}`
+                    : '/api/modifiers';
+                const method = this.editingModifier ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    this.showModal = false;
+                    await this.loadModifiers();
+                } else {
+                    alert('Помилка збереження');
+                }
+            } catch (error) {
+                console.error('Error saving modifier:', error);
+                alert('Помилка збереження');
+            }
+        },
+
+        async deleteModifier(id) {
+            if (!confirm('Видалити цю групу модифікаторів?')) return;
+
+            try {
+                await fetch(`/api/modifiers/${id}`, { method: 'DELETE' });
+                await this.loadModifiers();
+            } catch (error) {
+                console.error('Error deleting modifier:', error);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

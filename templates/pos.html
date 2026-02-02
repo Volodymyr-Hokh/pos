@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}POS - Clover Coffee{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #1a1a2e;
+    }
+
+    .pos-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        height: 100vh;
+    }
+
+    /* Products Section */
+    .pos-products {
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .pos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .pos-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: white;
+    }
+
+    .pos-logo .logo-icon {
+        width: 45px;
+        height: 45px;
+        background: #4CAF50;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pos-logo .logo-icon svg {
+        width: 25px;
+        height: 25px;
+        fill: white;
+    }
+
+    .pos-logo span {
+        font-weight: 700;
+        font-size: 1.3rem;
+    }
+
+    .pos-nav {
+        display: flex;
+        gap: 10px;
+    }
+
+    .pos-nav a {
+        padding: 10px 20px;
+        background: rgba(255,255,255,0.1);
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .pos-nav a:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    /* Categories */
+    .pos-categories {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .pos-cat-btn {
+        padding: 12px 24px;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 25px;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .pos-cat-btn:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .pos-cat-btn.active {
+        background: #4CAF50;
+    }
+
+    /* Products Grid */
+    .pos-products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .pos-product-card {
+        background: rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .pos-product-card:hover {
+        background: rgba(255,255,255,0.15);
+        transform: translateY(-2px);
+    }
+
+    .pos-product-card img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    .pos-product-card h4 {
+        color: white;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+    }
+
+    .pos-product-card .price {
+        color: #4CAF50;
+        font-weight: 600;
+    }
+
+    /* Combo card styles */
+    .pos-product-card.combo-card {
+        border: 2px solid #4CAF50;
+        background: rgba(76, 175, 80, 0.15);
+    }
+
+    .pos-product-card .combo-indicator {
+        margin-bottom: 8px;
+    }
+
+    .pos-product-card .combo-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .pos-product-card .combo-savings {
+        display: block;
+        color: #81c784;
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+
+    .pos-product-card .regular-price {
+        text-decoration: line-through;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.8rem;
+        display: block;
+    }
+
+    /* Cart combo indicator */
+    .cart-item .combo-tag {
+        display: inline-block;
+        background: #e8f5e9;
+        color: #4CAF50;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 6px;
+    }
+
+    /* Cart Section */
+    .pos-cart {
+        background: white;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cart-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .cart-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: #f5f7fa;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+
+    .cart-item-info {
+        flex: 1;
+    }
+
+    .cart-item-name {
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+
+    .cart-item-price {
+        color: #4CAF50;
+        font-weight: 600;
+    }
+
+    .cart-item-qty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cart-item-qty button {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #dfe6e9;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: all 0.2s;
+    }
+
+    .cart-item-qty button:hover {
+        border-color: #4CAF50;
+        color: #4CAF50;
+    }
+
+    .cart-item-qty span {
+        min-width: 30px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .cart-empty {
+        text-align: center;
+        color: #b2bec3;
+        padding: 40px;
+    }
+
+    /* Cart Footer */
+    .cart-footer {
+        padding: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    .cart-total {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .cart-total .amount {
+        color: #4CAF50;
+    }
+
+    .order-type-btns {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .order-type-btn {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #dfe6e9;
+        background: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .order-type-btn:hover {
+        border-color: #4CAF50;
+    }
+
+    .order-type-btn.active {
+        border-color: #4CAF50;
+        background: #e8f5e9;
+        color: #4CAF50;
+    }
+
+    .checkout-btn {
+        width: 100%;
+        padding: 18px;
+        background: #4CAF50;
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .checkout-btn:hover {
+        background: #45a049;
+    }
+
+    .checkout-btn:disabled {
+        background: #b2bec3;
+        cursor: not-allowed;
+    }
+
+    /* Success Modal */
+    .pos-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .pos-modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        max-width: 400px;
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #e8f5e9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+    }
+
+    .success-icon svg {
+        width: 50px;
+        height: 50px;
+        fill: #4CAF50;
+    }
+
+    .pos-modal-content h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .pos-modal-content p {
+        color: #636e72;
+        margin-bottom: 25px;
+    }
+
+    .pos-modal-content button {
+        padding: 12px 40px;
+        background: #4CAF50;
+        border: none;
+        border-radius: 25px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .pos-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div x-data="posApp()" x-init="init()" class="pos-container">
+    <!-- Products Section -->
+    <div class="pos-products">
+        <div class="pos-header">
+            <div class="pos-logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M2,21V19H20V21H2M20,8V5H18V8H20M20,3A2,2 0 0,1 22,5V8A2,2 0 0,1 20,10H18V13A4,4 0 0,1 14,17H8A4,4 0 0,1 4,13V3H20M16,5H6V13A2,2 0 0,0 8,15H14A2,2 0 0,0 16,13V5Z"/></svg>
+                </div>
+                <span>POS Каса</span>
+            </div>
+            <div class="pos-nav">
+                <a href="/">Головна</a>
+                <a href="/admin/orders">Адмінка</a>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="pos-categories">
+            <button class="pos-cat-btn" :class="{ active: !selectedCategory }" @click="selectedCategory = null">Все</button>
+            <template x-for="cat in categories" :key="cat._id">
+                <button class="pos-cat-btn" :class="{ active: selectedCategory === cat._id }" @click="selectedCategory = cat._id" x-text="cat.name"></button>
+            </template>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="pos-products-grid">
+            <template x-for="product in filteredProducts" :key="product._id">
+                <div class="pos-product-card" :class="{ 'combo-card': product.item_type === 'combo' }" @click="addToCart(product)">
+                    <!-- Combo indicator -->
+                    <div class="combo-indicator" x-show="product.item_type === 'combo'">
+                        <span class="combo-badge">КОМБО</span>
+                        <span class="combo-savings" x-text="'-' + product.savings + ' грн'"></span>
+                    </div>
+                    <img :src="product.image" :alt="product.name" onerror="this.src='/static/img/placeholder.png'">
+                    <h4 x-text="product.name"></h4>
+                    <span class="regular-price" x-show="product.item_type === 'combo'" x-text="product.regular_price + ' грн'"></span>
+                    <span class="price" x-text="product.price + ' грн'"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="pos-cart">
+        <div class="cart-header">
+            <h2>Замовлення</h2>
+        </div>
+
+        <div class="cart-items">
+            <template x-for="(item, index) in cart" :key="index">
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">
+                            <span x-text="item.name"></span>
+                            <span class="combo-tag" x-show="item.is_combo">КОМБО</span>
+                        </div>
+                        <div class="cart-item-price" x-text="(item.price * item.qty) + ' грн'"></div>
+                    </div>
+                    <div class="cart-item-qty">
+                        <button @click="decreaseQty(index)">-</button>
+                        <span x-text="item.qty"></span>
+                        <button @click="increaseQty(index)">+</button>
+                    </div>
+                </div>
+            </template>
+
+            <div class="cart-empty" x-show="cart.length === 0">
+                <p>Оберіть товари</p>
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Всього:</span>
+                <span class="amount" x-text="getTotal() + ' грн'"></span>
+            </div>
+
+            <div class="order-type-btns">
+                <template x-for="ot in orderTypes" :key="ot.type">
+                    <button class="order-type-btn" :class="{ active: orderType === ot.type }" @click="orderType = ot.type" x-text="ot.label"></button>
+                </template>
+            </div>
+
+            <button class="checkout-btn" @click="checkout()" :disabled="cart.length === 0">
+                Оформити замовлення
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="pos-modal" x-show="showSuccess" x-transition>
+        <div class="pos-modal-content">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
+            </div>
+            <h3>Замовлення створено!</h3>
+            <p>Номер: <strong x-text="orderNumber"></strong></p>
+            <button @click="showSuccess = false">OK</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const categoriesData = {{ categories | tojson }};
+const productsData = {{ products | tojson }};
+
+function posApp() {
+    return {
+        categories: categoriesData || [],
+        products: productsData || [],
+        selectedCategory: null,
+        cart: [],
+        orderType: 'dine_in',
+        orderTypes: [],
+        showSuccess: false,
+        orderNumber: '',
+
+        async init() {
+            // Load order types from settings
+            try {
+                const response = await fetch('/api/settings/order-types?enabled_only=true');
+                if (response.ok) {
+                    this.orderTypes = await response.json();
+                    // Set default order type to the first enabled one
+                    if (this.orderTypes.length > 0) {
+                        this.orderType = this.orderTypes[0].type;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading order types:', error);
+                // Fallback to default order types
+                this.orderTypes = [
+                    { type: 'dine_in', label: 'В залі' },
+                    { type: 'takeaway', label: 'З собою' }
+                ];
+            }
+        },
+
+        get filteredProducts() {
+            if (!this.selectedCategory) return this.products;
+            return this.products.filter(p => p.category_id === this.selectedCategory);
+        },
+
+        addToCart(product) {
+            const isCombo = product.item_type === 'combo';
+            const itemId = isCombo ? `combo_${product._id}` : product._id;
+            const existing = this.cart.find(item => item.product_id === itemId);
+            if (existing) {
+                existing.qty++;
+            } else {
+                this.cart.push({
+                    product_id: itemId,
+                    name: product.name,
+                    price: isCombo ? product.combo_price : product.price,
+                    qty: 1,
+                    is_combo: isCombo,
+                    combo_items: isCombo ? product.items : null
+                });
+            }
+        },
+
+        increaseQty(index) {
+            this.cart[index].qty++;
+        },
+
+        decreaseQty(index) {
+            if (this.cart[index].qty > 1) {
+                this.cart[index].qty--;
+            } else {
+                this.cart.splice(index, 1);
+            }
+        },
+
+        getTotal() {
+            return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        },
+
+        async checkout() {
+            if (this.cart.length === 0) return;
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: this.cart,
+                        order_type: this.orderType
+                    })
+                });
+
+                if (response.ok) {
+                    const order = await response.json();
+                    this.orderNumber = order.order_number;
+                    this.cart = [];
+                    this.showSuccess = true;
+                }
+            } catch (error) {
+                console.error('Checkout error:', error);
+                alert('Помилка при створенні замовлення');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

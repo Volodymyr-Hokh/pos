@@ -1,0 +1,431 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Проекти{% endblock %}
+
+{% block extra_css %}
+<style>
+.projects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.project-card {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 25px;
+    border: 2px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.project-card:hover {
+    border-color: var(--color-primary);
+}
+
+.project-card.inactive {
+    opacity: 0.6;
+}
+
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 12px;
+}
+
+.project-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.project-description {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.project-stats {
+    display: flex;
+    gap: 20px;
+    padding: 12px;
+    background: var(--color-bg);
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.inactive {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.project-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--color-border);
+}
+
+.project-actions button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.btn-edit:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-delete {
+    background: #ffebee;
+    color: #f44336;
+}
+
+.btn-delete:hover {
+    background: #f44336;
+    color: white;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 450px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-group input {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 60px;
+    height: 60px;
+    opacity: 0.3;
+    margin-bottom: 15px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="projectsApp()" x-init="loadProjects()">
+    <!-- Header -->
+    <div class="projects-header">
+        <div>
+            <p style="color: var(--color-text-muted); margin: 0;">
+                Проекти допомагають організувати асортимент (наприклад: "Літнє меню", "Новорічне меню")
+            </p>
+        </div>
+        <button class="btn-add" @click="openModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Новий проект
+        </button>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="projects-grid" x-show="projects.length > 0">
+        <template x-for="project in projects" :key="project._id">
+            <div class="project-card" :class="{ 'inactive': !project.is_active }">
+                <div class="project-header">
+                    <div class="project-name" x-text="project.name"></div>
+                    <span class="status-badge" :class="project.is_active ? 'active' : 'inactive'"
+                          x-text="project.is_active ? 'Активний' : 'Неактивний'"></span>
+                </div>
+                <p class="project-description" x-text="project.description || 'Без опису'"></p>
+
+                <div class="project-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="getProductCount(project._id)"></div>
+                        <div class="stat-label">Страв</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="formatDate(project.created_at)"></div>
+                        <div class="stat-label">Створено</div>
+                    </div>
+                </div>
+
+                <div class="project-actions">
+                    <button class="btn-edit" @click="editProject(project)">Редагувати</button>
+                    <button class="btn-delete" @click="deleteProject(project._id)">Видалити</button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" x-show="projects.length === 0">
+        <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V8H5V5H19M5,19V10H19V19H5M7,12H17V14H7V12M7,16H14V18H7V16Z"/>
+        </svg>
+        <h3>Немає проектів</h3>
+        <p>Створіть перший проект для організації асортименту</p>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" x-show="showModal" x-transition.opacity @click.self="showModal = false" style="display: none;">
+        <div class="modal-content" @click.stop>
+            <div class="modal-header">
+                <h2 x-text="editingProject ? 'Редагувати проект' : 'Новий проект'"></h2>
+                <button class="modal-close" @click="showModal = false">&times;</button>
+            </div>
+
+            <form @submit.prevent="saveProject()">
+                <div class="form-group">
+                    <label>Назва проекту</label>
+                    <input type="text" x-model="form.name" required placeholder="Наприклад: Літнє меню">
+                </div>
+
+                <div class="form-group">
+                    <label>Опис</label>
+                    <textarea rows="3" x-model="form.description" placeholder="Короткий опис проекту"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is_active" x-model="form.is_active">
+                        <label for="is_active" style="margin: 0;">Активний проект</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" x-text="editingProject ? 'Зберегти' : 'Створити'"></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function projectsApp() {
+    return {
+        projects: [],
+        products: [],
+        showModal: false,
+        editingProject: null,
+        form: {
+            name: '',
+            description: '',
+            is_active: true
+        },
+
+        async loadProjects() {
+            try {
+                const [projectsRes, productsRes] = await Promise.all([
+                    fetch('/api/projects'),
+                    fetch('/api/products')
+                ]);
+                this.projects = await projectsRes.json();
+                this.products = await productsRes.json();
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        },
+
+        getProductCount(projectId) {
+            return this.products.filter(p => p.project_id === projectId).length;
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+        },
+
+        openModal(project = null) {
+            if (project) {
+                this.editingProject = project;
+                this.form = {
+                    name: project.name,
+                    description: project.description || '',
+                    is_active: project.is_active !== false
+                };
+            } else {
+                this.editingProject = null;
+                this.form = {
+                    name: '',
+                    description: '',
+                    is_active: true
+                };
+            }
+            this.showModal = true;
+        },
+
+        editProject(project) {
+            this.openModal(project);
+        },
+
+        async saveProject() {
+            try {
+                const url = this.editingProject
+                    ? `/api/projects/${this.editingProject._id}`
+                    : '/api/projects';
+                const method = this.editingProject ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.form)
+                });
+
+                if (response.ok) {
+                    this.showModal = false;
+                    await this.loadProjects();
+                } else {
+                    alert('Помилка збереження');
+                }
+            } catch (error) {
+                console.error('Error saving project:', error);
+                alert('Помилка збереження');
+            }
+        },
+
+        async deleteProject(id) {
+            const productCount = this.getProductCount(id);
+            const message = productCount > 0
+                ? `Видалити проект? ${productCount} страв буде відв'язано від проекту.`
+                : 'Видалити цей проект?';
+
+            if (!confirm(message)) return;
+
+            try {
+                await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+                await this.loadProjects();
+            } catch (error) {
+                console.error('Error deleting project:', error);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}{{ restaurant_name }} - Меню{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/menu.css">
+{% endblock %}
+
+{% block body %}
+<div x-data="menuApp()" class="menu-container">
+    <!-- Header -->
+    <header class="menu-header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M2,21V19H20V21H2M20,8V5H18V8H20M20,3A2,2 0 0,1 22,5V8A2,2 0 0,1 20,10H18V13A4,4 0 0,1 14,17H8A4,4 0 0,1 4,13V3H20M16,5H6V13A2,2 0 0,0 8,15H14A2,2 0 0,0 16,13V5Z"/></svg>
+                </div>
+                <span>{{ restaurant_name }}</span>
+            </a>
+
+            <nav class="main-nav">
+                <a href="/" class="nav-item">Головна</a>
+                <a href="/menu" class="nav-item active">Меню</a>
+                <a href="#" class="nav-item" @click.prevent="showFeedback = true">Залишити відгук</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="theme-toggle" @click="theme = theme === 'light' ? 'dark' : 'light'"
+                        :title="theme === 'light' ? 'Темна тема' : 'Світла тема'">
+                    <svg x-show="theme === 'light'" viewBox="0 0 24 24"><path d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95Z"/></svg>
+                    <svg x-show="theme === 'dark'" viewBox="0 0 24 24"><path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z"/></svg>
+                </button>
+                <button class="cart-btn" @click="showCart = true">
+                    <svg viewBox="0 0 24 24"><path d="M17,18C15.89,18 15,18.89 15,20A2,2 0 0,0 17,22A2,2 0 0,0 19,20C19,18.89 18.1,18 17,18M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5.5C20.95,5.34 21,5.17 21,5A1,1 0 0,0 20,4H5.21L4.27,2M7,18C5.89,18 5,18.89 5,20A2,2 0 0,0 7,22A2,2 0 0,0 9,20C9,18.89 8.1,18 7,18Z"/></svg>
+                    <span x-text="cart.length > 0 ? cart.reduce((a,b) => a + b.qty, 0) + ' товарів' : 'Корзина порожня'"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="menu-body">
+        <!-- Categories Sidebar -->
+        <aside class="categories-sidebar">
+            <template x-for="cat in categories" :key="cat._id">
+                <button
+                    class="category-item"
+                    :class="{ active: selectedCategory === cat._id }"
+                    @click="selectedCategory = cat._id"
+                >
+                    <span class="cat-icon" x-html="getCategoryIcon(cat.icon)"></span>
+                    <span x-text="cat.name"></span>
+                </button>
+            </template>
+        </aside>
+
+        <!-- Products Grid -->
+        <main class="products-main">
+            <div class="products-header">
+                <div class="header-titles">
+                    <h1>МЕНЮ</h1>
+                    <h2 x-text="searchQuery ? 'Результати пошуку' : getCategoryName(selectedCategory)"></h2>
+                </div>
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" class="search-icon"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/></svg>
+                    <input type="text"
+                           x-model="searchQuery"
+                           placeholder="Пошук страв..."
+                           class="search-input">
+                    <button x-show="searchQuery" @click="searchQuery = ''" class="search-clear">&times;</button>
+                </div>
+            </div>
+            <!-- Table indicator if scanned QR -->
+            <div x-show="tableNumber" class="table-indicator">
+                <svg viewBox="0 0 24 24"><path d="M12,6C8.67,6 6,8.67 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12C18,8.67 15.33,6 12,6M12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4M20,10A2,2 0 0,1 22,12A2,2 0 0,1 20,14A2,2 0 0,1 18,12A2,2 0 0,1 20,10M20,4A2,2 0 0,1 22,6A2,2 0 0,1 20,8A2,2 0 0,1 18,6A2,2 0 0,1 20,4M4,10A2,2 0 0,1 6,12A2,2 0 0,1 4,14A2,2 0 0,1 2,12A2,2 0 0,1 4,10M4,4A2,2 0 0,1 6,6A2,2 0 0,1 4,8A2,2 0 0,1 2,6A2,2 0 0,1 4,4M12,20A2,2 0 0,1 14,22A2,2 0 0,1 12,24A2,2 0 0,1 10,22A2,2 0 0,1 12,20M20,20A2,2 0 0,1 22,22A2,2 0 0,1 20,24A2,2 0 0,1 18,22A2,2 0 0,1 20,20M4,20A2,2 0 0,1 6,22A2,2 0 0,1 4,24A2,2 0 0,1 2,22A2,2 0 0,1 4,20Z"/></svg>
+                <span>Столик <strong x-text="tableNumber"></strong></span>
+            </div>
+
+            <div class="products-list">
+                <template x-for="product in filteredProducts" :key="product._id">
+                    <div class="product-card" :class="{ 'combo-card': product.item_type === 'combo' }">
+                        <div class="product-info">
+                            <!-- Combo badge -->
+                            <div class="combo-header" x-show="product.item_type === 'combo'">
+                                <span class="combo-badge">КОМБО</span>
+                                <span class="combo-discount" x-text="'-' + Math.round(product.savings / product.regular_price * 100) + '%'"></span>
+                            </div>
+
+                            <h3 x-text="product.name"></h3>
+
+                            <!-- Combo pricing -->
+                            <template x-if="product.item_type === 'combo'">
+                                <div class="combo-pricing">
+                                    <span class="regular-price" x-text="product.regular_price + ' грн'"></span>
+                                    <p class="price combo-price" x-text="product.combo_price + ' грн'"></p>
+                                </div>
+                            </template>
+                            <template x-if="product.item_type !== 'combo'">
+                                <p class="price" x-text="product.price + ' грн'"></p>
+                            </template>
+
+                            <p class="description" x-text="product.description"></p>
+
+                            <!-- Combo items list -->
+                            <div class="combo-items" x-show="product.item_type === 'combo' && product.items">
+                                <template x-for="ci in product.items" :key="ci.product_id">
+                                    <span class="combo-item-tag" x-text="ci.product_name + (ci.qty > 1 ? ' x' + ci.qty : '')"></span>
+                                </template>
+                            </div>
+
+                            <div class="meta" x-show="product.item_type !== 'combo'">
+                                <span x-show="product.weight" x-text="product.weight"></span>
+                                <span x-show="product.cook_time" x-text="product.cook_time"></span>
+                            </div>
+                            <div class="actions">
+                                <button class="add-btn" @click="addToCart(product)">
+                                    <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                                    додати
+                                </button>
+                                <button class="fav-btn">
+                                    <svg viewBox="0 0 24 24"><path d="M12.1,18.55L12,18.65L11.89,18.55C7.14,14.24 4,11.39 4,8.5C4,6.5 5.5,5 7.5,5C9.04,5 10.54,6 11.07,7.36H12.93C13.46,6 14.96,5 16.5,5C18.5,5 20,6.5 20,8.5C20,11.39 16.86,14.24 12.1,18.55M16.5,3C14.76,3 13.09,3.81 12,5.08C10.91,3.81 9.24,3 7.5,3C4.42,3 2,5.41 2,8.5C2,12.27 5.4,15.36 10.55,20.03L12,21.35L13.45,20.03C18.6,15.36 22,12.27 22,8.5C22,5.41 19.58,3 16.5,3Z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="product-image">
+                            <img :src="product.image" :alt="product.name" onerror="this.src='/static/img/placeholder.png'">
+                        </div>
+                    </div>
+                </template>
+
+                <div x-show="filteredProducts.length === 0" class="empty-state">
+                    <p>Товари в цій категорії відсутні</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Info Sidebar -->
+        <aside class="info-sidebar">
+            <div class="info-card">
+                <h4>Графік роботи</h4>
+                <p>{{ restaurant_hours }}</p>
+            </div>
+            <div class="info-card">
+                <h4>Адреса</h4>
+                <p>{{ restaurant_address }}</p>
+            </div>
+            <div class="info-card">
+                <h4>Телефон</h4>
+                <p>{{ restaurant_phone }}</p>
+            </div>
+            <button class="feedback-btn" @click="showFeedback = true">Надіслати відгук</button>
+        </aside>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="feedback-modal" x-cloak x-show="showFeedback" x-transition @click.self="showFeedback = false">
+        <div class="feedback-content">
+            <div class="feedback-header">
+                <h3>Залишити відгук</h3>
+                <button @click="showFeedback = false">&times;</button>
+            </div>
+
+            <div class="feedback-body">
+                <div class="rating-group">
+                    <label class="form-label">Оцінка *</label>
+                    <div class="star-rating">
+                        <template x-for="star in 5" :key="star">
+                            <button type="button" class="star-btn"
+                                    :class="{ 'active': feedbackRating >= star }"
+                                    @click="feedbackRating = star">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/>
+                                </svg>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Номер телефону</label>
+                    <input type="tel" class="form-input"
+                           x-model="feedbackPhone"
+                           placeholder="+380...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Коментар</label>
+                    <textarea class="form-input"
+                              x-model="feedbackComment"
+                              rows="4"
+                              placeholder="Ваш відгук про наш заклад..."></textarea>
+                </div>
+            </div>
+
+            <div class="feedback-footer">
+                <button class="btn btn-outline" @click="showFeedback = false">Скасувати</button>
+                <button class="btn btn-primary"
+                        @click="submitFeedback()"
+                        :disabled="feedbackRating === 0 || feedbackSubmitting">
+                    <span x-show="!feedbackSubmitting">Надіслати</span>
+                    <span x-show="feedbackSubmitting">Надсилання...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Success Toast -->
+    <div class="toast" x-show="feedbackSuccess" x-transition.opacity
+         x-init="$watch('feedbackSuccess', val => { if(val) setTimeout(() => feedbackSuccess = false, 3000) })">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
+        <span>Дякуємо за ваш відгук!</span>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="cart-modal" x-show="showCart" x-transition @click.self="showCart = false">
+        <div class="cart-content">
+            <div class="cart-header">
+                <h3>Кошик</h3>
+                <button @click="showCart = false">&times;</button>
+            </div>
+
+            <div class="cart-items" x-show="cart.length > 0">
+                <template x-for="(item, index) in cart" :key="index">
+                    <div class="cart-item">
+                        <div class="item-info">
+                            <span class="item-name" x-text="item.name"></span>
+                            <span class="item-price" x-text="item.price + ' грн'"></span>
+                        </div>
+                        <div class="item-qty">
+                            <button @click="decreaseQty(index)">-</button>
+                            <span x-text="item.qty"></span>
+                            <button @click="increaseQty(index)">+</button>
+                        </div>
+                        <button class="remove-btn" @click="removeFromCart(index)">&times;</button>
+                    </div>
+                </template>
+            </div>
+
+            <div class="cart-empty" x-show="cart.length === 0">
+                <p>Кошик порожній</p>
+            </div>
+
+            <div class="cart-footer" x-show="cart.length > 0">
+                <!-- Promo Code -->
+                <div class="promo-section">
+                    <div class="promo-input-row">
+                        <input type="text"
+                               x-model="promoCode"
+                               placeholder="Промокод"
+                               class="promo-input"
+                               :disabled="promoApplied"
+                               @keyup.enter="applyPromoCode()">
+                        <button class="promo-btn"
+                                @click="promoApplied ? removePromoCode() : applyPromoCode()"
+                                :class="{ 'applied': promoApplied }">
+                            <span x-text="promoApplied ? 'Скасувати' : 'Застосувати'"></span>
+                        </button>
+                    </div>
+                    <div class="promo-message" x-show="promoMessage" :class="{ 'error': promoError, 'success': !promoError }">
+                        <span x-text="promoMessage"></span>
+                    </div>
+                </div>
+
+                <div class="cart-total">
+                    <div class="subtotal" x-show="promoApplied">
+                        <span>Сума:</span>
+                        <span x-text="getSubtotal() + ' грн'"></span>
+                    </div>
+                    <div class="discount" x-show="promoApplied">
+                        <span>Знижка:</span>
+                        <span class="discount-value" x-text="'-' + discountAmount + ' грн'"></span>
+                    </div>
+                    <div class="total-row">
+                        <span>Всього:</span>
+                        <span x-text="getTotal() + ' грн'"></span>
+                    </div>
+                </div>
+                <button class="checkout-btn" @click="checkout()">Оформити замовлення</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Success Modal -->
+    <div class="success-modal" x-show="orderSuccess" x-transition>
+        <div class="success-content">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
+            </div>
+            <h3>Замовлення прийнято!</h3>
+            <p>Номер замовлення: <strong x-text="orderNumber"></strong></p>
+            <button @click="orderSuccess = false">OK</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const categoriesData = {{ categories | tojson }};
+const productsData = {{ products | tojson }};
+</script>
+<script src="/static/js/menu.js"></script>
+{% endblock %}

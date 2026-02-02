@@ -1,0 +1,543 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Аналітика{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.date-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.quick-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.quick-filter-btn {
+    padding: 8px 16px;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg-card);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+}
+
+.quick-filter-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.quick-filter-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+.custom-range {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.custom-range input[type="date"] {
+    padding: 8px 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+.custom-range input[type="date"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.period-summary {
+    margin-left: auto;
+    display: flex;
+    gap: 20px;
+    padding: 10px 20px;
+    background: var(--color-primary-light);
+    border-radius: 10px;
+}
+
+.period-stat {
+    text-align: center;
+}
+
+.period-stat .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.period-stat .label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    margin-left: 15px;
+}
+
+.export-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg-card);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.export-btn:hover {
+    border-color: #4CAF50;
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.export-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.charts-grid-extended {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.charts-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.chart-card {
+    height: 350px;
+}
+
+.chart-card h3 {
+    margin-bottom: 15px;
+    color: var(--color-text-primary);
+}
+
+.chart-card canvas {
+    max-height: 280px;
+}
+
+@media (max-width: 1024px) {
+    .charts-grid-extended,
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
+
+    .period-summary {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="statsApp()" x-init="init()">
+    <!-- Date Filter Bar -->
+    <div class="date-filter-bar">
+        <div class="quick-filters">
+            <button class="quick-filter-btn" :class="{ active: dateRange === 'today' }" @click="setDateRange('today')">Сьогодні</button>
+            <button class="quick-filter-btn" :class="{ active: dateRange === 'week' }" @click="setDateRange('week')">Тиждень</button>
+            <button class="quick-filter-btn" :class="{ active: dateRange === 'month' }" @click="setDateRange('month')">Місяць</button>
+            <button class="quick-filter-btn" :class="{ active: dateRange === 'custom' }" @click="dateRange = 'custom'">Обрати</button>
+        </div>
+        <div class="custom-range" x-show="dateRange === 'custom'" x-transition>
+            <input type="date" x-model="dateFrom" @change="loadStats()">
+            <span>—</span>
+            <input type="date" x-model="dateTo" @change="loadStats()">
+        </div>
+
+        <!-- Product Filters -->
+        <div class="product-filters" style="display: flex; gap: 15px; align-items: center; margin-left: 15px;">
+            <select class="filter-select" x-model="alcoholFilter" @change="loadStats()" style="padding: 8px 12px; border: 2px solid var(--color-border); border-radius: 8px; background: var(--color-bg-card); color: var(--color-text-primary); font-size: 0.9rem;">
+                <option value="all">Всі страви</option>
+                <option value="alcohol">Тільки алкоголь</option>
+                <option value="non_alcohol">Без алкоголю</option>
+            </select>
+            <select x-show="productTags.length > 0" class="filter-select" x-model="selectedTag" @change="loadStats()" style="padding: 8px 12px; border: 2px solid var(--color-border); border-radius: 8px; background: var(--color-bg-card); color: var(--color-text-primary); font-size: 0.9rem;">
+                <option value="">Всі теги</option>
+                <template x-for="tag in productTags" :key="tag._id">
+                    <option :value="tag._id" x-text="tag.name"></option>
+                </template>
+            </select>
+        </div>
+
+        <div class="period-summary" x-show="stats.period_orders !== undefined">
+            <div class="period-stat">
+                <div class="value" x-text="stats.period_orders || 0"></div>
+                <div class="label">Замовлень</div>
+            </div>
+            <div class="period-stat">
+                <div class="value" x-text="(stats.period_revenue || 0) + ' грн'"></div>
+                <div class="label">Виручка</div>
+            </div>
+        </div>
+        <div class="export-buttons">
+            <a class="export-btn" :href="'/api/export/orders?date_from=' + dateFrom + '&date_to=' + dateTo" download>
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/></svg>
+                Замовлення
+            </a>
+            <a class="export-btn" :href="'/api/export/stats?date_from=' + dateFrom + '&date_to=' + dateTo" download>
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/></svg>
+                Статистика
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="stats.today_orders || 0"></span>
+                <span class="stat-label">Замовлень сьогодні</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5,6H23V18H5V6M14,9A3,3 0 0,1 17,12A3,3 0 0,1 14,15A3,3 0 0,1 11,12A3,3 0 0,1 14,9M9,8A2,2 0 0,1 7,10V14A2,2 0 0,1 9,16H19A2,2 0 0,1 21,14V10A2,2 0 0,1 19,8H9M1,10H3V20H19V22H1V10Z"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="(stats.today_revenue || 0) + ' грн'"></span>
+                <span class="stat-label">Виручка сьогодні</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="stats.pending_orders || 0"></span>
+                <span class="stat-label">Очікують</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="stats.completed_orders || 0"></span>
+                <span class="stat-label">Виконано сьогодні</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Charts Row -->
+    <div class="charts-grid-extended">
+        <div class="card chart-card">
+            <h3>Продажі за період</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <div class="card chart-card top-products-card">
+            <h3>Топ продуктів</h3>
+            <div class="top-products" x-show="stats.top_products && stats.top_products.length > 0">
+                <template x-for="(product, index) in stats.top_products" :key="index">
+                    <div class="top-product-item">
+                        <span class="rank" :class="'rank-' + (index + 1)" x-text="index + 1"></span>
+                        <div class="product-info">
+                            <span class="name" x-text="product._id"></span>
+                            <div class="product-stats">
+                                <span class="count">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3"/></svg>
+                                    <span x-text="product.count + ' шт'"></span>
+                                </span>
+                                <span class="revenue">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M5,6H23V18H5V6M14,9A3,3 0 0,1 17,12A3,3 0 0,1 14,15A3,3 0 0,1 11,12A3,3 0 0,1 14,9M9,8A2,2 0 0,1 7,10V14A2,2 0 0,1 9,16H19A2,2 0 0,1 21,14V10A2,2 0 0,1 19,8H9M1,10H3V20H19V22H1V10Z"/></svg>
+                                    <span x-text="product.revenue + ' грн'"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="empty-state small" x-show="!stats.top_products || stats.top_products.length === 0">
+                <p>Немає даних</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Charts Row -->
+    <div class="charts-row">
+        <div class="card chart-card">
+            <h3>Типи замовлень</h3>
+            <canvas id="orderTypesChart"></canvas>
+        </div>
+
+        <div class="card chart-card">
+            <h3>Замовлення по годинах</h3>
+            <canvas id="hourlyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+function statsApp() {
+    return {
+        stats: {},
+        dateRange: 'week',
+        dateFrom: '',
+        dateTo: '',
+        salesChart: null,
+        typesChart: null,
+        hourlyChart: null,
+        productTags: [],
+        alcoholFilter: 'all',
+        selectedTag: '',
+
+        async init() {
+            await this.loadProductTags();
+            this.setDateRange('week');
+        },
+
+        async loadProductTags() {
+            try {
+                const response = await fetch('/api/product-tags');
+                this.productTags = await response.json();
+            } catch (error) {
+                console.error('Error loading tags:', error);
+                this.productTags = [];
+            }
+        },
+
+        setDateRange(range) {
+            this.dateRange = range;
+            const today = new Date();
+            const formatDate = (d) => d.toISOString().split('T')[0];
+
+            switch(range) {
+                case 'today':
+                    this.dateFrom = formatDate(today);
+                    this.dateTo = formatDate(today);
+                    break;
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 6);
+                    this.dateFrom = formatDate(weekAgo);
+                    this.dateTo = formatDate(today);
+                    break;
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setDate(today.getDate() - 29);
+                    this.dateFrom = formatDate(monthAgo);
+                    this.dateTo = formatDate(today);
+                    break;
+            }
+
+            if (range !== 'custom') {
+                this.loadStats();
+            }
+        },
+
+        async loadStats() {
+            try {
+                let url = '/api/stats';
+                const params = new URLSearchParams();
+
+                if (this.dateFrom) params.append('date_from', this.dateFrom);
+                if (this.dateTo) params.append('date_to', this.dateTo);
+                if (this.alcoholFilter !== 'all') params.append('alcohol', this.alcoholFilter);
+                if (this.selectedTag) params.append('tags', this.selectedTag);
+
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const response = await fetch(url);
+                this.stats = await response.json();
+                this.$nextTick(() => setTimeout(() => this.createCharts(), 100));
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        },
+
+        createCharts() {
+            this.createSalesChart();
+            this.createTypesChart();
+            this.createHourlyChart();
+        },
+
+        createSalesChart() {
+            const ctx = document.getElementById('salesChart');
+            if (!ctx) return;
+
+            if (this.salesChart) this.salesChart.destroy();
+
+            const dailyStats = this.stats.daily_stats || [];
+
+            this.salesChart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: dailyStats.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Виручка (грн)',
+                            data: dailyStats.map(d => d.revenue),
+                            backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                            borderColor: '#4CAF50',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Замовлень',
+                            data: dailyStats.map(d => d.orders_count),
+                            type: 'line',
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Виручка (грн)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Замовлень' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        },
+
+        createTypesChart() {
+            const ctx = document.getElementById('orderTypesChart');
+            if (!ctx) return;
+
+            if (this.typesChart) this.typesChart.destroy();
+
+            const typeData = this.stats.revenue_by_type || {};
+            const labels = [];
+            const data = [];
+            const counts = [];
+            const colors = ['#2196F3', '#9C27B0', '#E91E63', '#FF9800'];
+            const typeNames = { dine_in: 'В залі', takeaway: 'З собою', delivery: 'Доставка', self_service: 'Самообслуговування' };
+
+            Object.entries(typeData).forEach(([key, value]) => {
+                if (value.revenue > 0 || value.count > 0) {
+                    labels.push(typeNames[key] || key);
+                    data.push(value.revenue || 0);
+                    counts.push(value.count || 0);
+                }
+            });
+
+            if (data.length === 0) {
+                data.push(0);
+                labels.push('Немає даних');
+            }
+
+            this.typesChart = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const idx = ctx.dataIndex;
+                                    return `${ctx.label}: ${data[idx]} грн (${counts[idx] || 0} зам.)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        },
+
+        createHourlyChart() {
+            const ctx = document.getElementById('hourlyChart');
+            if (!ctx) return;
+
+            if (this.hourlyChart) this.hourlyChart.destroy();
+
+            const hourlyData = this.stats.hourly_distribution || [];
+
+            // Create full 24-hour data
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const ordersData = hours.map(h => {
+                const found = hourlyData.find(d => d.hour === h);
+                return found ? found.orders : 0;
+            });
+
+            this.hourlyChart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: hours.map(h => h + ':00'),
+                    datasets: [{
+                        label: 'Замовлень',
+                        data: ordersData,
+                        backgroundColor: 'rgba(156, 39, 176, 0.6)',
+                        borderColor: '#9C27B0',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+    };
+}
+</script>
+{% endblock %}

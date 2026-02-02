@@ -1,0 +1,127 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Відгуки{% endblock %}
+
+{% block content %}
+<div x-data="feedbacksApp()" x-init="init()">
+    <!-- Stats Cards -->
+    <div class="stats-grid" style="margin-bottom: 30px;">
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="stats.average_rating || '0'"></span>
+                <span class="stat-label">Середня оцінка</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9,22A1,1 0 0,1 8,21V18H4A2,2 0 0,1 2,16V4C2,2.89 2.9,2 4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H13.9L10.2,21.71C10,21.9 9.75,22 9.5,22V22H9Z"/></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" x-text="stats.total || '0'"></span>
+                <span class="stat-label">Всього відгуків</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedbacks Table -->
+    <div class="card">
+        <div class="table-wrapper">
+            <table class="table" x-show="feedbacks.length > 0">
+                <thead>
+                    <tr>
+                        <th>Оцінка</th>
+                        <th>Телефон</th>
+                        <th>Коментар</th>
+                        <th>Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="feedback in feedbacks" :key="feedback._id">
+                        <tr>
+                            <td>
+                                <div class="star-display">
+                                    <template x-for="star in 5" :key="star">
+                                        <svg viewBox="0 0 24 24" :class="{ 'filled': feedback.rating >= star }">
+                                            <path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/>
+                                        </svg>
+                                    </template>
+                                </div>
+                            </td>
+                            <td x-text="feedback.phone || '-'"></td>
+                            <td x-text="feedback.comment || '-'"></td>
+                            <td x-text="formatDate(feedback.created_at)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" x-show="feedbacks.length === 0">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24" width="80" height="80"><path fill="#dfe6e9" d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></svg>
+            </div>
+            <h3>Відгуків поки немає</h3>
+            <p>Відгуки клієнтів з'являться тут</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.star-display {
+    display: flex;
+    gap: 2px;
+}
+
+.star-display svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--color-border);
+}
+
+.star-display svg.filled {
+    fill: #FFD700;
+}
+</style>
+
+<script>
+function feedbacksApp() {
+    return {
+        feedbacks: [],
+        stats: { total: 0, average_rating: 0 },
+
+        async init() {
+            await Promise.all([
+                this.loadFeedbacks(),
+                this.loadStats()
+            ]);
+        },
+
+        async loadFeedbacks() {
+            try {
+                const response = await fetch('/api/feedbacks');
+                this.feedbacks = await response.json();
+            } catch (error) {
+                console.error('Error loading feedbacks:', error);
+            }
+        },
+
+        async loadStats() {
+            try {
+                const response = await fetch('/api/feedbacks/stats');
+                this.stats = await response.json();
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        },
+
+        formatDate(dateStr) {
+            return new Date(dateStr).toLocaleString('uk-UA');
+        }
+    };
+}
+</script>
+{% endblock %}

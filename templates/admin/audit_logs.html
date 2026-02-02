@@ -1,0 +1,378 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Історія змін{% endblock %}
+
+{% block extra_css %}
+<style>
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.filters select {
+    padding: 10px 15px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+}
+
+.logs-table {
+    width: 100%;
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.logs-table th {
+    background: var(--color-bg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.logs-table tr:last-child td {
+    border-bottom: none;
+}
+
+.logs-table tr:hover {
+    background: var(--color-primary-light);
+}
+
+.action-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.action-badge.create {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.action-badge.update {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.action-badge.delete {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.action-badge.copy {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.entity-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+}
+
+.changes-btn {
+    padding: 6px 12px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.changes-btn:hover {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+}
+
+/* Changes Modal */
+.changes-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.changes-content {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 25px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.changes-content h3 {
+    margin-bottom: 20px;
+    color: var(--color-text-primary);
+}
+
+.change-item {
+    padding: 12px;
+    background: var(--color-bg);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.change-item .field {
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.change-item .values {
+    display: flex;
+    gap: 15px;
+    font-size: 0.9rem;
+}
+
+.change-item .old-value {
+    color: #c62828;
+    text-decoration: line-through;
+}
+
+.change-item .new-value {
+    color: #2e7d32;
+}
+
+.close-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .logs-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="auditLogsApp()" x-init="loadLogs()">
+    <!-- Header -->
+    <div class="logs-header">
+        <div class="filters">
+            <select x-model="filter.entity_type" @change="loadLogs()">
+                <option value="">Всі типи</option>
+                <option value="product">Страви</option>
+                <option value="modifier">Модифікатори</option>
+                <option value="category">Категорії</option>
+                <option value="project">Проекти</option>
+            </select>
+            <select x-model="filter.action" @change="loadLogs()">
+                <option value="">Всі дії</option>
+                <option value="create">Створення</option>
+                <option value="update">Оновлення</option>
+                <option value="delete">Видалення</option>
+                <option value="copy">Копіювання</option>
+            </select>
+        </div>
+        <span style="color: var(--color-text-muted);" x-text="'Показано: ' + logs.length + ' записів'"></span>
+    </div>
+
+    <!-- Logs Table -->
+    <table class="logs-table" x-show="logs.length > 0">
+        <thead>
+            <tr>
+                <th>Дата/час</th>
+                <th>Дія</th>
+                <th>Тип</th>
+                <th>Назва</th>
+                <th>Деталі</th>
+            </tr>
+        </thead>
+        <tbody>
+            <template x-for="log in filteredLogs" :key="log._id">
+                <tr>
+                    <td x-text="formatDate(log.created_at)"></td>
+                    <td>
+                        <span class="action-badge" :class="log.action" x-text="actionLabels[log.action] || log.action"></span>
+                    </td>
+                    <td>
+                        <span class="entity-badge" x-text="entityLabels[log.entity_type] || log.entity_type"></span>
+                    </td>
+                    <td x-text="log.entity_name"></td>
+                    <td>
+                        <button class="changes-btn" @click="showChanges(log)"
+                                x-show="log.changes && Object.keys(log.changes).length > 0">
+                            Переглянути
+                        </button>
+                        <span x-show="!log.changes || Object.keys(log.changes).length === 0" style="color: var(--color-text-muted);">—</span>
+                    </td>
+                </tr>
+            </template>
+        </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div class="empty-state" x-show="logs.length === 0">
+        <svg viewBox="0 0 24 24" width="60" height="60" style="opacity: 0.3; margin-bottom: 15px;">
+            <path fill="currentColor" d="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3"/>
+        </svg>
+        <h3>Немає записів</h3>
+        <p>Історія змін порожня</p>
+    </div>
+
+    <!-- Changes Modal -->
+    <div class="changes-modal" x-show="showModal" x-transition.opacity @click.self="showModal = false" style="display: none;">
+        <div class="changes-content" @click.stop>
+            <h3>Деталі змін</h3>
+            <template x-if="selectedLog">
+                <div>
+                    <p style="margin-bottom: 15px; color: var(--color-text-muted);">
+                        <strong x-text="selectedLog.entity_name"></strong> — <span x-text="formatDate(selectedLog.created_at)"></span>
+                    </p>
+                    <template x-for="(change, field) in selectedLog.changes" :key="field">
+                        <div class="change-item">
+                            <div class="field" x-text="fieldLabels[field] || field"></div>
+                            <div class="values">
+                                <span class="old-value" x-text="formatValue(change.old)"></span>
+                                <span>→</span>
+                                <span class="new-value" x-text="formatValue(change.new)"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <button class="close-btn" @click="showModal = false">Закрити</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function auditLogsApp() {
+    return {
+        logs: [],
+        showModal: false,
+        selectedLog: null,
+        filter: {
+            entity_type: '',
+            action: ''
+        },
+
+        actionLabels: {
+            create: 'Створення',
+            update: 'Оновлення',
+            delete: 'Видалення',
+            copy: 'Копіювання'
+        },
+
+        entityLabels: {
+            product: 'Страва',
+            modifier: 'Модифікатор',
+            category: 'Категорія',
+            project: 'Проект',
+            order: 'Замовлення'
+        },
+
+        fieldLabels: {
+            name: 'Назва',
+            price: 'Ціна',
+            description: 'Опис',
+            available: 'Наявність',
+            category_id: 'Категорія',
+            weight: 'Вага',
+            cook_time: 'Час приготування',
+            is_alcohol: 'Алкоголь',
+            tags: 'Теги',
+            modifier_groups: 'Модифікатори',
+            daily_production_norm: 'Денна норма',
+            type: 'Тип',
+            required: 'Обов\'язковий',
+            options: 'Опції'
+        },
+
+        get filteredLogs() {
+            let result = this.logs;
+            if (this.filter.action) {
+                result = result.filter(l => l.action === this.filter.action);
+            }
+            return result;
+        },
+
+        async loadLogs() {
+            try {
+                let url = '/api/audit-logs?limit=200';
+                if (this.filter.entity_type) {
+                    url += `&entity_type=${this.filter.entity_type}`;
+                }
+                const response = await fetch(url);
+                this.logs = await response.json();
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('uk-UA', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+
+        formatValue(value) {
+            if (value === null || value === undefined) return '(порожньо)';
+            if (typeof value === 'boolean') return value ? 'Так' : 'Ні';
+            if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : '(порожньо)';
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+        },
+
+        showChanges(log) {
+            this.selectedLog = log;
+            this.showModal = true;
+        }
+    };
+}
+</script>
+{% endblock %}

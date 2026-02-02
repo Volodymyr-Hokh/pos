@@ -1,0 +1,564 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Промокоди{% endblock %}
+
+{% block extra_css %}
+<style>
+.promo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.promo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.promo-card {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.promo-card:hover {
+    border-color: var(--color-primary);
+}
+
+.promo-card.inactive {
+    opacity: 0.6;
+}
+
+.promo-code {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    font-family: monospace;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.promo-discount {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.promo-discount .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #4CAF50;
+}
+
+.promo-discount .type {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.promo-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 15px;
+}
+
+.promo-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.promo-meta svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.promo-stats {
+    display: flex;
+    gap: 20px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-border);
+    margin-bottom: 15px;
+}
+
+.promo-stat {
+    text-align: center;
+}
+
+.promo-stat .num {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.promo-stat .label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.promo-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.promo-actions button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.btn-edit:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-toggle {
+    background: #fff3e0;
+    color: #ff9800;
+}
+
+.btn-toggle:hover {
+    background: #ff9800;
+    color: white;
+}
+
+.btn-delete {
+    background: #ffebee;
+    color: #f44336;
+}
+
+.btn-delete:hover {
+    background: #f44336;
+    color: white;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--color-bg-card);
+    border-radius: 16px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 5px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-active {
+    background: #e8f5e9;
+    color: #4CAF50;
+}
+
+.badge-inactive {
+    background: #ffebee;
+    color: #f44336;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 80px;
+    height: 80px;
+    opacity: 0.3;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="promoApp()" x-init="loadPromoCodes()">
+    <!-- Header -->
+    <div class="promo-header">
+        <div>
+            <p style="color: var(--color-text-muted); margin: 0;">Всього: <strong x-text="promoCodes.length"></strong> промокодів</p>
+        </div>
+        <button class="btn-add" @click="openModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Додати промокод
+        </button>
+    </div>
+
+    <!-- Promo Codes Grid -->
+    <div class="promo-grid" x-show="promoCodes.length > 0">
+        <template x-for="promo in promoCodes" :key="promo._id">
+            <div class="promo-card" :class="{ 'inactive': !promo.is_active }">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div class="promo-code" x-text="promo.code"></div>
+                    <span class="badge" :class="promo.is_active ? 'badge-active' : 'badge-inactive'" x-text="promo.is_active ? 'Активний' : 'Неактивний'"></span>
+                </div>
+
+                <div class="promo-discount">
+                    <span class="value">
+                        <span x-text="promo.discount_type === 'percentage' ? promo.discount_value + '%' : promo.discount_value + ' грн'"></span>
+                    </span>
+                    <span class="type" x-text="promo.discount_type === 'percentage' ? 'знижка' : 'фіксована знижка'"></span>
+                </div>
+
+                <div class="promo-meta">
+                    <div class="meta-item" x-show="promo.valid_from || promo.valid_to">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1"/></svg>
+                        <span x-text="formatDateRange(promo.valid_from, promo.valid_to)"></span>
+                    </div>
+                    <div class="meta-item" x-show="promo.min_order_amount > 0">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5,6H23V18H5V6M14,9A3,3 0 0,1 17,12A3,3 0 0,1 14,15A3,3 0 0,1 11,12A3,3 0 0,1 14,9M9,8A2,2 0 0,1 7,10V14A2,2 0 0,1 9,16H19A2,2 0 0,1 21,14V10A2,2 0 0,1 19,8H9M1,10H3V20H19V22H1V10Z"/></svg>
+                        <span>Мін. замовлення: <span x-text="promo.min_order_amount"></span> грн</span>
+                    </div>
+                    <div class="meta-item" x-show="promo.usage_limit">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+                        <span>Ліміт: <span x-text="promo.usage_limit"></span></span>
+                    </div>
+                </div>
+
+                <div class="promo-stats">
+                    <div class="promo-stat">
+                        <div class="num" x-text="promo.usage_count || 0"></div>
+                        <div class="label">Використано</div>
+                    </div>
+                    <div class="promo-stat" x-show="promo.usage_limit">
+                        <div class="num" x-text="(promo.usage_limit || 0) - (promo.usage_count || 0)"></div>
+                        <div class="label">Залишилось</div>
+                    </div>
+                </div>
+
+                <div class="promo-actions">
+                    <button class="btn-edit" @click="editPromo(promo)">Редагувати</button>
+                    <button class="btn-toggle" @click="togglePromo(promo)">
+                        <span x-text="promo.is_active ? 'Вимкнути' : 'Увімкнути'"></span>
+                    </button>
+                    <button class="btn-delete" @click="deletePromo(promo._id)">Видалити</button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" x-show="promoCodes.length === 0">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21.41,11.58L12.41,2.58A2,2 0 0,0 11,2H4A2,2 0 0,0 2,4V11C2,11.55 2.22,12.05 2.59,12.42L11.59,21.42A2,2 0 0,0 13,22A2,2 0 0,0 14.41,21.41L21.41,14.41A2,2 0 0,0 22,13A2,2 0 0,0 21.41,11.58M13,20L4,11V4H11L20,13M6.5,5A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 6.5,8A1.5,1.5 0 0,1 5,6.5A1.5,1.5 0 0,1 6.5,5Z"/></svg>
+        <h3>Немає промокодів</h3>
+        <p>Створіть перший промокод для ваших клієнтів</p>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" x-show="showModal" x-transition.opacity @click.self="showModal = false" style="display: none;">
+        <div class="modal-content" @click.stop>
+            <div class="modal-header">
+                <h2 x-text="editingPromo ? 'Редагувати промокод' : 'Новий промокод'"></h2>
+                <button class="modal-close" @click="showModal = false">&times;</button>
+            </div>
+
+            <form @submit.prevent="savePromo()">
+                <div class="form-group">
+                    <label>Код</label>
+                    <input type="text" x-model="form.code" required placeholder="SALE20" style="text-transform: uppercase;">
+                    <div class="form-hint">Буде автоматично переведено у верхній регістр</div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Тип знижки</label>
+                        <select x-model="form.discount_type">
+                            <option value="percentage">Відсоток (%)</option>
+                            <option value="fixed">Фіксована сума</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Значення</label>
+                        <input type="number" x-model="form.discount_value" required min="0" step="0.01" :placeholder="form.discount_type === 'percentage' ? '10' : '50'">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Діє з</label>
+                        <input type="datetime-local" x-model="form.valid_from">
+                    </div>
+                    <div class="form-group">
+                        <label>Діє до</label>
+                        <input type="datetime-local" x-model="form.valid_to">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ліміт використань</label>
+                        <input type="number" x-model="form.usage_limit" min="0" placeholder="Без ліміту">
+                        <div class="form-hint">0 або пусто = без ліміту</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Мін. сума замовлення</label>
+                        <input type="number" x-model="form.min_order_amount" min="0" step="0.01" placeholder="0">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" x-text="editingPromo ? 'Зберегти зміни' : 'Створити промокод'"></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function promoApp() {
+    return {
+        promoCodes: [],
+        showModal: false,
+        editingPromo: null,
+        form: {
+            code: '',
+            discount_type: 'percentage',
+            discount_value: 10,
+            valid_from: '',
+            valid_to: '',
+            usage_limit: null,
+            min_order_amount: 0,
+            is_active: true
+        },
+
+        async loadPromoCodes() {
+            try {
+                const response = await fetch('/api/promo-codes');
+                this.promoCodes = await response.json();
+            } catch (error) {
+                console.error('Error loading promo codes:', error);
+            }
+        },
+
+        openModal(promo = null) {
+            if (promo) {
+                this.editingPromo = promo;
+                this.form = {
+                    code: promo.code,
+                    discount_type: promo.discount_type,
+                    discount_value: promo.discount_value,
+                    valid_from: promo.valid_from ? new Date(promo.valid_from).toISOString().slice(0, 16) : '',
+                    valid_to: promo.valid_to ? new Date(promo.valid_to).toISOString().slice(0, 16) : '',
+                    usage_limit: promo.usage_limit || null,
+                    min_order_amount: promo.min_order_amount || 0,
+                    is_active: promo.is_active
+                };
+            } else {
+                this.editingPromo = null;
+                this.form = {
+                    code: '',
+                    discount_type: 'percentage',
+                    discount_value: 10,
+                    valid_from: '',
+                    valid_to: '',
+                    usage_limit: null,
+                    min_order_amount: 0,
+                    is_active: true
+                };
+            }
+            this.showModal = true;
+        },
+
+        editPromo(promo) {
+            this.openModal(promo);
+        },
+
+        async savePromo() {
+            try {
+                const data = {
+                    code: this.form.code.toUpperCase(),
+                    discount_type: this.form.discount_type,
+                    discount_value: parseFloat(this.form.discount_value),
+                    valid_from: this.form.valid_from ? new Date(this.form.valid_from).toISOString() : null,
+                    valid_to: this.form.valid_to ? new Date(this.form.valid_to).toISOString() : null,
+                    usage_limit: this.form.usage_limit ? parseInt(this.form.usage_limit) : null,
+                    min_order_amount: parseFloat(this.form.min_order_amount) || 0,
+                    is_active: this.form.is_active
+                };
+
+                const url = this.editingPromo
+                    ? `/api/promo-codes/${this.editingPromo._id}`
+                    : '/api/promo-codes';
+
+                const method = this.editingPromo ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Помилка збереження');
+                    return;
+                }
+
+                this.showModal = false;
+                await this.loadPromoCodes();
+            } catch (error) {
+                console.error('Error saving promo code:', error);
+                alert('Помилка збереження промокоду');
+            }
+        },
+
+        async togglePromo(promo) {
+            try {
+                const data = {
+                    ...promo,
+                    is_active: !promo.is_active
+                };
+                delete data._id;
+                delete data.usage_count;
+                delete data.created_at;
+
+                await fetch(`/api/promo-codes/${promo._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                await this.loadPromoCodes();
+            } catch (error) {
+                console.error('Error toggling promo code:', error);
+            }
+        },
+
+        async deletePromo(id) {
+            if (!confirm('Видалити цей промокод?')) return;
+
+            try {
+                await fetch(`/api/promo-codes/${id}`, { method: 'DELETE' });
+                await this.loadPromoCodes();
+            } catch (error) {
+                console.error('Error deleting promo code:', error);
+            }
+        },
+
+        formatDateRange(from, to) {
+            const formatDate = (d) => {
+                if (!d) return '';
+                const date = new Date(d);
+                return date.toLocaleDateString('uk-UA');
+            };
+
+            if (from && to) {
+                return `${formatDate(from)} - ${formatDate(to)}`;
+            } else if (from) {
+                return `з ${formatDate(from)}`;
+            } else if (to) {
+                return `до ${formatDate(to)}`;
+            }
+            return 'Безстроково';
+        }
+    };
+}
+</script>
+{% endblock %}

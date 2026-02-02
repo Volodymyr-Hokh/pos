@@ -1,0 +1,842 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Управління меню{% endblock %}
+
+{% block content %}
+<div x-data="menuApp()" x-init="init()">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="menu-stats">
+            <span class="stat-item">
+                <strong x-text="menuItems.length"></strong> позицій в меню
+            </span>
+            <span class="stat-item">
+                <strong x-text="menuItems.filter(i => i.is_active).length"></strong> активних
+            </span>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="menu-columns">
+        <!-- Left: Available Products & Combos -->
+        <div class="menu-column">
+            <div class="column-header">
+                <h3>Асортимент</h3>
+                <div class="source-tabs">
+                    <button class="tab-btn" :class="{ active: sourceTab === 'products' }"
+                            @click="sourceTab = 'products'">Страви</button>
+                    <button class="tab-btn" :class="{ active: sourceTab === 'combos' }"
+                            @click="sourceTab = 'combos'">Комбо</button>
+                </div>
+            </div>
+            <div class="column-content">
+                <!-- Products List -->
+                <template x-if="sourceTab === 'products'">
+                    <div>
+                        <input type="text" class="search-input" placeholder="Пошук..."
+                               x-model="searchQuery" @input="filterProducts()" style="width: 100%; margin-bottom: 10px;">
+                        <template x-for="product in filteredProducts" :key="product._id">
+                            <div class="menu-item-card available" @click="addProductToMenu(product)">
+                                <div class="item-image">
+                                    <img :src="product.image" :alt="product.name" onerror="this.src='/static/img/placeholder.png'">
+                                </div>
+                                <div class="item-info">
+                                    <span class="item-name" x-text="product.name"></span>
+                                    <span class="item-category" x-text="getCategoryName(product.category_id)"></span>
+                                    <span class="item-price" x-text="product.price + ' грн'"></span>
+                                </div>
+                                <button class="btn-add" title="Додати в меню">
+                                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                                </button>
+                            </div>
+                        </template>
+                        <div class="empty-message" x-show="filteredProducts.length === 0">
+                            <p x-show="searchQuery">Нічого не знайдено</p>
+                            <p x-show="!searchQuery && availableProducts.length === 0">Всі страви вже додані в меню</p>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Combos List -->
+                <template x-if="sourceTab === 'combos'">
+                    <div>
+                        <template x-for="combo in availableCombos" :key="combo._id">
+                            <div class="menu-item-card available combo-source-card" @click="openCategoryModal(combo)">
+                                <div class="item-image">
+                                    <img :src="combo.image || '/static/img/placeholder.svg'" :alt="combo.name" onerror="this.src='/static/img/placeholder.png'">
+                                </div>
+                                <div class="item-info">
+                                    <span class="item-name" x-text="combo.name"></span>
+                                    <span class="combo-type-badge">Комбо</span>
+                                    <div class="combo-pricing-small">
+                                        <span class="regular-price" x-text="combo.regular_price + ' грн'"></span>
+                                        <span class="combo-price" x-text="combo.combo_price + ' грн'"></span>
+                                    </div>
+                                </div>
+                                <button class="btn-add" title="Додати в меню">
+                                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                                </button>
+                            </div>
+                        </template>
+                        <div class="empty-message" x-show="availableCombos.length === 0">
+                            <p>Немає доступних комбо</p>
+                            <p><a href="/admin/combos">Створити комбо</a></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Right: Current Menu -->
+        <div class="menu-column active-menu">
+            <div class="column-header">
+                <h3>Активне меню</h3>
+                <div class="header-hint">Перетягуйте для сортування</div>
+            </div>
+            <div class="column-content" id="menuList">
+                <template x-for="(item, index) in filteredMenuItems" :key="item.menu_item_id || item._id">
+                    <div class="menu-item-card in-menu" :class="{ 'inactive': !item.is_active, 'dragging': draggedIndex === index, 'combo-menu-item': item.item_type === 'combo' }"
+                         draggable="true"
+                         @dragstart="dragStart($event, index)"
+                         @dragover.prevent="dragOver($event, index)"
+                         @dragend="dragEnd()"
+                         @drop="drop($event, index)">
+                        <div class="item-position" x-text="index + 1"></div>
+                        <div class="drag-handle" title="Перетягніть для зміни порядку">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"/></svg>
+                        </div>
+                        <div class="item-image">
+                            <img :src="item.image" :alt="item.name" onerror="this.src='/static/img/placeholder.png'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name-row">
+                                <span class="item-name" x-text="item.name"></span>
+                                <span class="combo-badge" x-show="item.item_type === 'combo'">КОМБО</span>
+                            </div>
+                            <span class="item-category" x-text="getCategoryName(item.category_id)"></span>
+                            <template x-if="item.item_type === 'combo'">
+                                <span class="item-savings" x-text="'Економія ' + item.savings + ' грн'"></span>
+                            </template>
+                            <span class="item-price" x-text="item.price + ' грн'"></span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-icon" :class="item.is_active ? 'active' : ''"
+                                    @click="toggleActive(item)"
+                                    :title="item.is_active ? 'Деактивувати' : 'Активувати'">
+                                <svg x-show="item.is_active" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/></svg>
+                                <svg x-show="!item.is_active" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/></svg>
+                            </button>
+                            <button class="btn-icon danger" @click="removeFromMenu(item)" title="Прибрати з меню">
+                                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                <div class="empty-message" x-show="menuItems.length === 0">
+                    <p>Меню порожнє</p>
+                    <p>Додайте страви з асортименту</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Selection Modal -->
+    <div class="category-modal-overlay" x-show="showCategoryModal" x-cloak x-transition.opacity @click.self="showCategoryModal = false">
+        <div class="category-modal" @click.stop>
+            <div class="category-modal-header">
+                <h3>Оберіть категорію</h3>
+                <button class="modal-close" @click="showCategoryModal = false">&times;</button>
+            </div>
+            <div class="category-modal-body">
+                <p class="modal-hint">В яку категорію меню додати "<strong x-text="selectedCombo?.name"></strong>"?</p>
+                <div class="category-options">
+                    <template x-for="cat in categories" :key="cat._id">
+                        <button class="category-option" @click="addComboWithCategory(cat._id)">
+                            <span x-text="cat.name"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.menu-stats {
+    display: flex;
+    gap: 24px;
+}
+
+.stat-item {
+    color: var(--text-secondary);
+}
+
+.stat-item strong {
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.header-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.menu-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.menu-column {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 200px);
+}
+
+.column-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+}
+
+.column-header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.search-input, .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    width: 150px;
+}
+
+.column-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.menu-item-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.menu-item-card.available:hover {
+    background: var(--primary-light);
+    transform: translateX(4px);
+}
+
+.menu-item-card.in-menu {
+    cursor: grab;
+}
+
+.menu-item-card.in-menu:active {
+    cursor: grabbing;
+}
+
+.menu-item-card.inactive {
+    opacity: 0.5;
+}
+
+.menu-item-card.drag-over {
+    border-top: 2px solid var(--primary);
+}
+
+.item-position {
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.drag-handle {
+    color: var(--text-secondary);
+    cursor: grab;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.drag-handle:hover {
+    background: var(--bg-secondary);
+    color: var(--primary);
+}
+
+.menu-item-card.dragging {
+    opacity: 0.5;
+    background: var(--primary-light);
+}
+
+.item-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-name {
+    display: block;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-category {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.item-price {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.btn-add {
+    padding: 8px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.menu-item-card:hover .btn-add {
+    opacity: 1;
+}
+
+.item-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-icon {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--bg-secondary);
+}
+
+.btn-icon.active {
+    color: var(--success);
+}
+
+.btn-icon.danger:hover {
+    color: var(--danger);
+}
+
+.empty-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-message p {
+    margin: 4px 0;
+}
+
+.active-menu .column-header {
+    background: var(--primary-light);
+}
+
+@media (max-width: 900px) {
+    .menu-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-column {
+        max-height: 400px;
+    }
+}
+
+/* Tab styles */
+.source-tabs {
+    display: flex;
+    gap: 5px;
+}
+
+.tab-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Combo source card styles */
+.combo-source-card {
+    border-left: 3px solid #4CAF50;
+}
+
+.combo-type-badge {
+    display: inline-block;
+    background: #4CAF50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.combo-pricing-small {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.combo-pricing-small .regular-price {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.combo-pricing-small .combo-price {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+/* Combo menu item styles */
+.combo-menu-item {
+    border-left: 3px solid #4CAF50;
+}
+
+.item-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.combo-badge {
+    background: #4CAF50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.item-savings {
+    display: block;
+    font-size: 0.8rem;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+/* Category Modal */
+.category-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.category-modal {
+    background: #1e1e2f;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 420px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.category-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
+    color: white;
+}
+
+.category-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: white;
+    padding: 4px 10px;
+    line-height: 1;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.category-modal-body {
+    padding: 24px;
+}
+
+.modal-hint {
+    margin: 0 0 20px 0;
+    color: #b0b0c0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.modal-hint strong {
+    color: #4CAF50;
+}
+
+.category-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.category-option {
+    padding: 16px;
+    background: #2a2a3e;
+    border: 2px solid #3a3a4e;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #e0e0e0;
+    transition: all 0.2s;
+}
+
+.category-option:hover {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+    transform: translateY(-2px);
+}
+
+.category-option:active {
+    transform: translateY(0);
+}
+</style>
+
+<script>
+const categoriesData = {{ categories | tojson }};
+
+function menuApp() {
+    return {
+        products: [],
+        combos: [],
+        menuItems: [],
+        categories: categoriesData || [],
+        searchQuery: '',
+        categoryFilter: '',
+        sourceTab: 'products',
+        filteredProducts: [],
+        filteredMenuItems: [],
+        availableCombos: [],
+        draggedIndex: null,
+        showCategoryModal: false,
+        selectedCombo: null,
+
+        async init() {
+            await Promise.all([
+                this.loadProducts(),
+                this.loadCombos(),
+                this.loadMenuItems()
+            ]);
+            this.filterProducts();
+            this.filterMenuItems();
+        },
+
+        async loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                this.products = await response.json();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        },
+
+        async loadCombos() {
+            try {
+                const response = await fetch('/api/combos/available-for-menu');
+                this.combos = await response.json();
+                this.availableCombos = this.combos;
+            } catch (error) {
+                console.error('Error loading combos:', error);
+            }
+        },
+
+        async loadMenuItems() {
+            try {
+                const response = await fetch('/api/menu-items?active_only=false');
+                this.menuItems = await response.json();
+                this.filterMenuItems();
+            } catch (error) {
+                console.error('Error loading menu items:', error);
+            }
+        },
+
+        get availableProducts() {
+            const menuProductIds = this.menuItems
+                .filter(item => item.item_type !== 'combo')
+                .map(item => item._id || item.product_id);
+            return this.products.filter(p => !menuProductIds.includes(p._id));
+        },
+
+        filterProducts() {
+            let filtered = this.availableProducts;
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                filtered = filtered.filter(p =>
+                    p.name.toLowerCase().includes(query) ||
+                    this.getCategoryName(p.category_id).toLowerCase().includes(query)
+                );
+            }
+            this.filteredProducts = filtered;
+        },
+
+        filterMenuItems() {
+            let filtered = [...this.menuItems];
+            if (this.categoryFilter) {
+                filtered = filtered.filter(item => item.category_id === this.categoryFilter);
+            }
+            filtered.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            this.filteredMenuItems = filtered;
+        },
+
+        getCategoryName(catId) {
+            const cat = this.categories.find(c => c._id === catId);
+            return cat ? cat.name : '';
+        },
+
+        async addProductToMenu(product) {
+            try {
+                await fetch('/api/menu-items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_type: 'product',
+                        product_id: product._id,
+                        is_active: true,
+                        sort_order: this.menuItems.length
+                    })
+                });
+                await this.loadMenuItems();
+                this.filterProducts();
+            } catch (error) {
+                console.error('Error adding product to menu:', error);
+            }
+        },
+
+        openCategoryModal(combo) {
+            this.selectedCombo = combo;
+            this.showCategoryModal = true;
+        },
+
+        async addComboWithCategory(categoryId) {
+            if (!this.selectedCombo) return;
+
+            try {
+                await fetch('/api/menu-items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_type: 'combo',
+                        combo_id: this.selectedCombo._id,
+                        category_id: categoryId,
+                        is_active: true,
+                        sort_order: this.menuItems.length
+                    })
+                });
+                this.showCategoryModal = false;
+                this.selectedCombo = null;
+                await this.loadMenuItems();
+                await this.loadCombos();
+            } catch (error) {
+                console.error('Error adding combo to menu:', error);
+            }
+        },
+
+        async removeFromMenu(item) {
+            const menuItemId = item.menu_item_id || item._id;
+            try {
+                await fetch(`/api/menu-items/${menuItemId}`, { method: 'DELETE' });
+                await this.loadMenuItems();
+                this.filterProducts();
+                if (item.item_type === 'combo') {
+                    await this.loadCombos();
+                }
+            } catch (error) {
+                console.error('Error removing from menu:', error);
+            }
+        },
+
+        async toggleActive(item) {
+            const menuItemId = item.menu_item_id || item._id;
+            const isCombo = item.item_type === 'combo';
+            try {
+                const body = {
+                    item_type: item.item_type || 'product',
+                    is_active: !item.is_active,
+                    sort_order: item.sort_order || 0,
+                    category_id: item.category_id || null
+                };
+                if (isCombo) {
+                    body.combo_id = item._id;
+                } else {
+                    body.product_id = item._id || item.product_id;
+                }
+                await fetch(`/api/menu-items/${menuItemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                await this.loadMenuItems();
+            } catch (error) {
+                console.error('Error toggling active:', error);
+            }
+        },
+
+        // Drag and drop
+        dragStart(event, index) {
+            this.draggedIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', index);
+        },
+
+        dragOver(event, index) {
+            event.preventDefault();
+            const items = document.querySelectorAll('.menu-item-card.in-menu');
+            items.forEach(item => item.classList.remove('drag-over'));
+            if (index !== this.draggedIndex && this.draggedIndex !== null) {
+                items[index]?.classList.add('drag-over');
+            }
+        },
+
+        dragEnd() {
+            this.draggedIndex = null;
+            const items = document.querySelectorAll('.menu-item-card.in-menu');
+            items.forEach(item => item.classList.remove('drag-over'));
+        },
+
+        async drop(event, index) {
+            event.preventDefault();
+            const items = document.querySelectorAll('.menu-item-card.in-menu');
+            items.forEach(item => item.classList.remove('drag-over'));
+
+            if (this.draggedIndex === null || this.draggedIndex === index) {
+                this.draggedIndex = null;
+                return;
+            }
+
+            // Reorder locally
+            const movedItem = this.filteredMenuItems.splice(this.draggedIndex, 1)[0];
+            this.filteredMenuItems.splice(index, 0, movedItem);
+
+            // Update sort orders
+            const updates = this.filteredMenuItems.map((item, idx) => ({
+                _id: item.menu_item_id || item._id,
+                sort_order: idx
+            }));
+
+            this.draggedIndex = null;
+
+            try {
+                const response = await fetch('/api/menu-items/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                if (!response.ok) {
+                    console.error('Reorder failed:', await response.text());
+                }
+                await this.loadMenuItems();
+            } catch (error) {
+                console.error('Error reordering:', error);
+                await this.loadMenuItems();
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

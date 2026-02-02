@@ -1,0 +1,441 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Теги страв{% endblock %}
+
+{% block extra_css %}
+<style>
+.tags-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.btn-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    background: var(--color-primary-dark);
+}
+
+.btn-add svg {
+    width: 20px;
+    height: 20px;
+}
+
+.tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.tag-card {
+    background: var(--color-bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    border: 2px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.tag-color {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.tag-info {
+    flex: 1;
+}
+
+.tag-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.tag-count {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.tag-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.tag-actions button {
+    padding: 8px;
+    border: none;
+    background: var(--color-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+}
+
+.tag-actions button:hover {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.tag-actions button.delete:hover {
+    background: #ffebee;
+    color: #f44336;
+}
+
+.tag-actions svg {
+    width: 18px;
+    height: 18px;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--color-bg-card);
+    border-radius: 20px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+    margin: 0 0 25px 0;
+    color: var(--color-text-primary);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.color-picker {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border-color: var(--color-text-primary);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+    border: 2px solid var(--color-border) !important;
+}
+
+.btn-cancel:hover {
+    border-color: var(--color-primary) !important;
+    color: var(--color-primary);
+}
+
+.btn-submit {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-submit:hover {
+    background: var(--color-primary-dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: var(--color-text-secondary);
+}
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 25px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.toast.error {
+    background: #f44336;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="tagsApp()" x-init="loadTags()">
+    <div class="tags-header">
+        <h2 style="margin: 0; color: var(--color-text-primary);">Теги страв</h2>
+        <button class="btn-add" @click="openModal()">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Додати тег
+        </button>
+    </div>
+
+    <template x-if="tags.length === 0 && !loading">
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5.5,7A1.5,1.5 0 0,1 4,5.5A1.5,1.5 0 0,1 5.5,4A1.5,1.5 0 0,1 7,5.5A1.5,1.5 0 0,1 5.5,7M21.41,11.58L12.41,2.58C12.05,2.22 11.55,2 11,2H4C2.89,2 2,2.89 2,4V11C2,11.55 2.22,12.05 2.59,12.41L11.58,21.41C11.95,21.77 12.45,22 13,22C13.55,22 14.05,21.77 14.41,21.41L21.41,14.41C21.78,14.05 22,13.55 22,13C22,12.44 21.77,11.94 21.41,11.58Z"/></svg>
+            <h3>Теги ще не створені</h3>
+            <p>Створіть теги для категоризації страв (наприклад: Горіхи, Гостре, Веган)</p>
+        </div>
+    </template>
+
+    <div class="tags-grid" x-show="tags.length > 0">
+        <template x-for="tag in tags" :key="tag._id">
+            <div class="tag-card">
+                <div class="tag-color" :style="'background-color: ' + tag.color"></div>
+                <div class="tag-info">
+                    <div class="tag-name" x-text="tag.name"></div>
+                </div>
+                <div class="tag-actions">
+                    <button @click="editTag(tag)" title="Редагувати">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
+                    </button>
+                    <button class="delete" @click="deleteTag(tag)" title="Видалити">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" x-show="showModal" x-transition.opacity @click.self="closeModal()">
+        <div class="modal-content" @click.stop>
+            <h3 x-text="editingTag ? 'Редагувати тег' : 'Новий тег'"></h3>
+
+            <div class="form-group">
+                <label>Назва тегу</label>
+                <input type="text" x-model="form.name" placeholder="Наприклад: Горіхи" @keyup.enter="saveTag()">
+            </div>
+
+            <div class="form-group">
+                <label>Колір</label>
+                <div class="color-picker">
+                    <template x-for="color in colors" :key="color">
+                        <div class="color-option"
+                             :class="{ selected: form.color === color }"
+                             :style="'background-color: ' + color"
+                             @click="form.color = color">
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" @click="closeModal()">Скасувати</button>
+                <button class="btn-submit" @click="saveTag()" :disabled="!form.name.trim()">
+                    <span x-text="editingTag ? 'Зберегти' : 'Створити'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" :class="{ 'error': toastError }" x-show="showToast" x-transition.opacity>
+        <span x-text="toastMessage"></span>
+    </div>
+</div>
+
+<script>
+function tagsApp() {
+    return {
+        tags: [],
+        loading: false,
+        showModal: false,
+        editingTag: null,
+        form: {
+            name: '',
+            color: '#6366f1'
+        },
+        colors: [
+            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
+            '#f97316', '#eab308', '#22c55e', '#14b8a6',
+            '#06b6d4', '#3b82f6', '#6b7280', '#78716c'
+        ],
+        showToast: false,
+        toastMessage: '',
+        toastError: false,
+
+        async loadTags() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/product-tags');
+                if (response.ok) {
+                    this.tags = await response.json();
+                }
+            } catch (error) {
+                console.error('Error loading tags:', error);
+            }
+            this.loading = false;
+        },
+
+        openModal() {
+            this.editingTag = null;
+            this.form = { name: '', color: '#6366f1' };
+            this.showModal = true;
+        },
+
+        editTag(tag) {
+            this.editingTag = tag;
+            this.form = { name: tag.name, color: tag.color };
+            this.showModal = true;
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.editingTag = null;
+            this.form = { name: '', color: '#6366f1' };
+        },
+
+        async saveTag() {
+            if (!this.form.name.trim()) return;
+
+            try {
+                const url = this.editingTag
+                    ? `/api/product-tags/${this.editingTag._id}`
+                    : '/api/product-tags';
+                const method = this.editingTag ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.form)
+                });
+
+                if (response.ok) {
+                    this.showNotification(this.editingTag ? 'Тег оновлено' : 'Тег створено');
+                    this.closeModal();
+                    await this.loadTags();
+                } else {
+                    const error = await response.json();
+                    this.showNotification(error.detail || 'Помилка збереження', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка збереження', true);
+            }
+        },
+
+        async deleteTag(tag) {
+            if (!confirm(`Видалити тег "${tag.name}"? Він буде знятий з усіх страв.`)) return;
+
+            try {
+                const response = await fetch(`/api/product-tags/${tag._id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    this.showNotification('Тег видалено');
+                    await this.loadTags();
+                } else {
+                    this.showNotification('Помилка видалення', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка видалення', true);
+            }
+        },
+
+        showNotification(message, isError = false) {
+            this.toastMessage = message;
+            this.toastError = isError;
+            this.showToast = true;
+            setTimeout(() => this.showToast = false, 3000);
+        }
+    };
+}
+</script>
+{% endblock %}

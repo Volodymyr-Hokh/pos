@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ restaurant_name }} - Головна{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+        text-align: center;
+        padding: 20px;
+    }
+    .logo {
+        width: 120px;
+        height: 120px;
+        background: #4CAF50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+    }
+    .logo svg {
+        width: 60px;
+        height: 60px;
+        fill: white;
+    }
+    h1 {
+        font-size: 2.5rem;
+        color: #2d3436;
+        margin-bottom: 10px;
+    }
+    .tagline {
+        color: #636e72;
+        font-size: 1.2rem;
+        margin-bottom: 40px;
+    }
+    .nav-links {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .nav-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 30px 40px;
+        background: white;
+        border-radius: 16px;
+        text-decoration: none;
+        color: #2d3436;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        min-width: 180px;
+    }
+    .nav-link:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(76, 175, 80, 0.2);
+    }
+    .nav-link svg {
+        width: 48px;
+        height: 48px;
+        fill: #4CAF50;
+        margin-bottom: 15px;
+    }
+    .nav-link span {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .nav-link small {
+        color: #636e72;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="hero">
+    <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M2,21V19H20V21H2M20,8V5H18V8H20M20,3A2,2 0 0,1 22,5V8A2,2 0 0,1 20,10H18V13A4,4 0 0,1 14,17H8A4,4 0 0,1 4,13V3H20M16,5H6V13A2,2 0 0,0 8,15H14A2,2 0 0,0 16,13V5Z"/></svg>
+    </div>
+    <h1>{{ restaurant_name }}</h1>
+    <p class="tagline">Смачна кава та їжа для вас</p>
+
+    <div class="nav-links">
+        <a href="/menu" class="nav-link">
+            <svg viewBox="0 0 24 24"><path d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z"/></svg>
+            <span>Меню</span>
+            <small>Переглянути страви</small>
+        </a>
+        <a href="/pos" class="nav-link">
+            <svg viewBox="0 0 24 24"><path d="M17,18C15.89,18 15,18.89 15,20A2,2 0 0,0 17,22A2,2 0 0,0 19,20C19,18.89 18.1,18 17,18M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5.5C20.95,5.34 21,5.17 21,5A1,1 0 0,0 20,4H5.21L4.27,2M7,18C5.89,18 5,18.89 5,20A2,2 0 0,0 7,22A2,2 0 0,0 9,20C9,18.89 8.1,18 7,18Z"/></svg>
+            <span>POS</span>
+            <small>Каса</small>
+        </a>
+        <a href="/admin/orders" class="nav-link">
+            <svg viewBox="0 0 24 24"><path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V5H19V19H5V5H7V7Z"/></svg>
+            <span>Адмінка</span>
+            <small>Управління</small>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,547 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Налаштування{% endblock %}
+
+{% block extra_css %}
+<style>
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 25px;
+}
+
+.settings-card {
+    background: var(--color-bg-card);
+    border-radius: 16px;
+    padding: 25px;
+    border: 2px solid var(--color-border);
+}
+
+.settings-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: var(--color-text-primary);
+}
+
+.settings-card h3 svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--color-primary);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 5px;
+}
+
+.btn-save {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-save:hover {
+    background: var(--color-primary-dark);
+}
+
+.btn-test {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+    border: 2px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+
+.btn-test:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-badge.connected {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.disconnected {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+.info-box {
+    background: var(--color-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.info-box p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.info-box a {
+    color: var(--color-primary);
+}
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 25px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.toast.error {
+    background: #f44336;
+}
+
+.toast svg {
+    width: 20px;
+    height: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="settingsApp()" x-init="loadSettings()">
+    <div class="settings-grid">
+        <!-- Telegram Settings -->
+        <div class="settings-card">
+            <h3>
+                <svg viewBox="0 0 24 24"><path d="M9.78,18.65L10.06,14.42L17.74,7.5C18.08,7.19 17.67,7.04 17.22,7.31L7.74,13.3L3.64,12C2.76,11.75 2.75,11.14 3.84,10.7L19.81,4.54C20.54,4.21 21.24,4.72 20.96,5.84L18.24,18.65C18.05,19.56 17.5,19.78 16.74,19.36L12.6,16.3L10.61,18.23C10.38,18.46 10.19,18.65 9.78,18.65Z"/></svg>
+                Telegram сповіщення
+            </h3>
+
+            <div class="info-box">
+                <p>
+                    Для отримання сповіщень про нові замовлення в Telegram:<br>
+                    1. Створіть бота через <a href="https://t.me/BotFather" target="_blank">@BotFather</a><br>
+                    2. Отримайте токен бота<br>
+                    3. Напишіть боту /start та отримайте chat_id через <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Bot Token</label>
+                <input type="text" x-model="telegram.bot_token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+                <div class="form-hint">Токен від @BotFather</div>
+            </div>
+
+            <div class="form-group">
+                <label>Chat ID</label>
+                <input type="text" x-model="telegram.chat_id" placeholder="-1001234567890">
+                <div class="form-hint">ID чату або групи для сповіщень</div>
+            </div>
+
+            <button class="btn-save" @click="saveTelegram()">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3M19 19H5V5H16.17L19 7.83V19M12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12M6 6H15V10H6V6Z"/></svg>
+                Зберегти
+            </button>
+
+            <button class="btn-test" @click="testTelegram()" :disabled="!telegram.bot_token || !telegram.chat_id">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/></svg>
+                Надіслати тестове повідомлення
+            </button>
+        </div>
+
+        <!-- Restaurant Settings -->
+        <div class="settings-card">
+            <h3>
+                <svg viewBox="0 0 24 24"><path d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z"/></svg>
+                Інформація про заклад
+            </h3>
+
+            <div class="form-group">
+                <label>Назва закладу</label>
+                <input type="text" x-model="restaurant.name" placeholder="Моя кав'ярня">
+            </div>
+
+            <div class="form-group">
+                <label>Адреса</label>
+                <input type="text" x-model="restaurant.address" placeholder="вул. Головна, 1">
+            </div>
+
+            <div class="form-group">
+                <label>Телефон</label>
+                <input type="text" x-model="restaurant.phone" placeholder="+380501234567">
+            </div>
+
+            <div class="form-group">
+                <label>Години роботи</label>
+                <input type="text" x-model="restaurant.hours" placeholder="08:00 - 22:00">
+            </div>
+
+            <button class="btn-save" @click="saveRestaurant()">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3M19 19H5V5H16.17L19 7.83V19M12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12M6 6H15V10H6V6Z"/></svg>
+                Зберегти
+            </button>
+        </div>
+
+        <!-- System Status -->
+        <div class="settings-card">
+            <h3>
+                <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16Z"/></svg>
+                Статус системи
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>MongoDB</span>
+                    <span class="status-badge" :class="status.mongodb ? 'connected' : 'disconnected'">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" :d="status.mongodb ? 'M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z' : 'M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z'"/></svg>
+                        <span x-text="status.mongodb ? 'Підключено' : 'Відключено'"></span>
+                    </span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Redis</span>
+                    <span class="status-badge" :class="status.redis ? 'connected' : 'disconnected'">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" :d="status.redis ? 'M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z' : 'M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z'"/></svg>
+                        <span x-text="status.redis ? 'Підключено' : 'Відключено'"></span>
+                    </span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Telegram Bot</span>
+                    <span class="status-badge" :class="status.telegram ? 'connected' : 'disconnected'">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" :d="status.telegram ? 'M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z' : 'M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z'"/></svg>
+                        <span x-text="status.telegram ? 'Налаштовано' : 'Не налаштовано'"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Settings -->
+        <div class="settings-card">
+            <h3>
+                <svg viewBox="0 0 24 24"><path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/></svg>
+                Налаштування доставки
+            </h3>
+
+            <div class="info-box">
+                <p>Встановіть мінімальну суму замовлення для доставки. Можна задати різні суми для доставки в місті та за містом.</p>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" x-model="delivery.enabled" style="width: auto;">
+                    <span>Увімкнути обмеження мінімальної суми</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Мінімальна сума в місті (грн)</label>
+                <input type="number" x-model="delivery.min_order_amount" placeholder="200" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Мінімальна сума за містом (грн)</label>
+                <input type="number" x-model="delivery.min_order_amount_out_of_city" placeholder="350" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Повідомлення для клієнта</label>
+                <input type="text" x-model="delivery.min_order_message" placeholder="Мінімальна сума для доставки: {amount} грн">
+                <div class="form-hint">Використовуйте {amount} для підстановки суми</div>
+            </div>
+
+            <button class="btn-save" @click="saveDelivery()">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3M19 19H5V5H16.17L19 7.83V19M12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12M6 6H15V10H6V6Z"/></svg>
+                Зберегти
+            </button>
+        </div>
+
+        <!-- Order Types Settings -->
+        <div class="settings-card">
+            <h3>
+                <svg viewBox="0 0 24 24"><path d="M3,4H7V8H3V4M9,5V7H21V5H9M3,10H7V14H3V10M9,11V13H21V11H9M3,16H7V20H3V16M9,17V19H21V17H9"/></svg>
+                Типи замовлень
+            </h3>
+
+            <div class="info-box">
+                <p>Налаштуйте порядок відображення та доступність типів замовлень. Перетягніть елементи для зміни порядку.</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <template x-for="(orderType, index) in orderTypes" :key="orderType.type">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px; border: 2px solid var(--color-border);">
+                        <span style="cursor: grab; color: var(--color-text-muted);">
+                            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z"/></svg>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
+                            <input type="checkbox" x-model="orderType.enabled" style="width: auto;">
+                            <input type="text" x-model="orderType.label" style="flex: 1; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-card);">
+                        </label>
+                        <div style="display: flex; gap: 4px;">
+                            <button @click="moveOrderType(index, -1)" :disabled="index === 0" style="padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-card); cursor: pointer;" :style="index === 0 ? 'opacity: 0.5' : ''">↑</button>
+                            <button @click="moveOrderType(index, 1)" :disabled="index === orderTypes.length - 1" style="padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg-card); cursor: pointer;" :style="index === orderTypes.length - 1 ? 'opacity: 0.5' : ''">↓</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <button class="btn-save" @click="saveOrderTypes()">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3M19 19H5V5H16.17L19 7.83V19M12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12M6 6H15V10H6V6Z"/></svg>
+                Зберегти
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" :class="{ 'error': toastError }" x-show="showToast" x-transition.opacity>
+        <svg viewBox="0 0 24 24"><path fill="currentColor" :d="toastError ? 'M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z' : 'M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z'"/></svg>
+        <span x-text="toastMessage"></span>
+    </div>
+</div>
+
+<script>
+function settingsApp() {
+    return {
+        telegram: {
+            bot_token: '',
+            chat_id: ''
+        },
+        restaurant: {
+            name: '',
+            address: '',
+            phone: '',
+            hours: ''
+        },
+        delivery: {
+            min_order_amount: 0,
+            min_order_amount_out_of_city: 0,
+            min_order_message: 'Мінімальна сума для доставки: {amount} грн',
+            enabled: false
+        },
+        orderTypes: [
+            { type: 'dine_in', label: 'В залі', enabled: true, sort_order: 0 },
+            { type: 'takeaway', label: 'З собою', enabled: true, sort_order: 1 },
+            { type: 'delivery', label: 'Доставка', enabled: true, sort_order: 2 },
+            { type: 'self_service', label: 'Самообслуговування', enabled: true, sort_order: 3 }
+        ],
+        status: {
+            mongodb: true,
+            redis: true,
+            telegram: false
+        },
+        showToast: false,
+        toastMessage: '',
+        toastError: false,
+
+        async loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.telegram) {
+                        this.telegram = data.telegram;
+                        this.status.telegram = !!(data.telegram.bot_token && data.telegram.chat_id);
+                    }
+                    if (data.restaurant) {
+                        this.restaurant = data.restaurant;
+                    }
+                    if (data.delivery) {
+                        this.delivery = data.delivery;
+                    }
+                    if (data.order_types) {
+                        this.orderTypes = data.order_types;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        },
+
+        async saveTelegram() {
+            try {
+                const response = await fetch('/api/settings/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.telegram)
+                });
+
+                if (response.ok) {
+                    this.status.telegram = !!(this.telegram.bot_token && this.telegram.chat_id);
+                    this.showNotification('Налаштування Telegram збережено');
+                } else {
+                    this.showNotification('Помилка збереження', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка збереження', true);
+            }
+        },
+
+        async testTelegram() {
+            try {
+                const response = await fetch('/api/settings/telegram/test', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    this.showNotification('Тестове повідомлення надіслано!');
+                } else {
+                    this.showNotification(result.error || 'Помилка надсилання', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка надсилання', true);
+            }
+        },
+
+        async saveRestaurant() {
+            try {
+                const response = await fetch('/api/settings/restaurant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.restaurant)
+                });
+
+                if (response.ok) {
+                    this.showNotification('Налаштування збережено');
+                } else {
+                    this.showNotification('Помилка збереження', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка збереження', true);
+            }
+        },
+
+        async saveDelivery() {
+            try {
+                const params = new URLSearchParams({
+                    min_order_amount: this.delivery.min_order_amount || 0,
+                    min_order_amount_out_of_city: this.delivery.min_order_amount_out_of_city || 0,
+                    min_order_message: this.delivery.min_order_message || '',
+                    enabled: this.delivery.enabled
+                });
+
+                const response = await fetch('/api/settings/delivery?' + params.toString(), {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    this.showNotification('Налаштування доставки збережено');
+                } else {
+                    this.showNotification('Помилка збереження', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка збереження', true);
+            }
+        },
+
+        moveOrderType(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= this.orderTypes.length) return;
+
+            const temp = this.orderTypes[index];
+            this.orderTypes[index] = this.orderTypes[newIndex];
+            this.orderTypes[newIndex] = temp;
+
+            // Update sort_order values
+            this.orderTypes.forEach((ot, i) => {
+                ot.sort_order = i;
+            });
+        },
+
+        async saveOrderTypes() {
+            try {
+                const response = await fetch('/api/settings/order-types', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.orderTypes)
+                });
+
+                if (response.ok) {
+                    this.showNotification('Типи замовлень збережено');
+                } else {
+                    this.showNotification('Помилка збереження', true);
+                }
+            } catch (error) {
+                this.showNotification('Помилка збереження', true);
+            }
+        },
+
+        showNotification(message, isError = false) {
+            this.toastMessage = message;
+            this.toastError = isError;
+            this.showToast = true;
+            setTimeout(() => this.showToast = false, 3000);
+        }
+    };
+}
+</script>
+{% endblock %}
